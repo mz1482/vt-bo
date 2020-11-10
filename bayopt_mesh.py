@@ -40,7 +40,7 @@ def black_box(x, y, z):
     :return: CC of that point and the target
     """
     sample_ecg = ecgs[get_index(np.array([x, y, z]))]
-    return np.abs(correlation_coef(target_ecg, sample_ecg))
+    return correlation_coef(target_ecg, sample_ecg)
 
 
 def optimize_point(labels):
@@ -52,61 +52,11 @@ def optimize_point(labels):
     )
 
     # Maximize over x number of points
-    optimizer.maximize(init_points=10, n_iter=40,  acq="ucb", kappa = 2)
+    optimizer.maximize(init_points=10, n_iter=10,  acq="ucb", kappa = 2)
     return optimizer
 
 
 
-def trend(target,visited,actual):
-    visited = np.asarray(visited)
-    actual = np.asarray(actual)
-    visited = visited[len(visited)-len(actual):len(visited)]
-    dis_tar_act = []
-    dis_tar_vis = []
-    dis_dif = []
-    for i in range(len(actual)):
-        d1 = np.linalg.norm(target-visited[i,:])
-        dis_tar_vis = np.append(dis_tar_vis,d1)
-        d2 = np.linalg.norm(target-actual[i,:])
-        dis_tar_act = np.append(dis_tar_act,d2)
-        d3 = np.linalg.norm(actual[i,:]-visited[i,:])
-        dis_dif = np.append(dis_dif,d3)
-    plt.figure(5)
-    plt.plot(dis_tar_vis,label = 'between target and visited')
-    plt.plot(dis_tar_act,label = 'between target and predicted')
-    plt.plot(dis_dif, label = 'between predicted and visited')
-    plt.xlabel("iteration")
-    plt.ylabel("distance")
-    plt.legend(loc='upper right')
-    plt.show
-
-    
-def nearest(tidx,labels,ecgs,dis_limit):
-    target_loc = labels[tidx]
-    target_ecg = ecgs[tidx]
-    cc = np.array([[1]])
-    dis = np.array([[0]])
-    first_row=np.concatenate((target_loc.reshape(1,3), dis,cc),axis =1)
-    nn_loc = np.empty((0, 3))
-    nn_cc = np.empty ((0,1))
-    nn_dis = np.empty((0,1))
-    for i in range(len(labels)):
-        d = np.sqrt(np.sum((target_loc - labels[i])**2))
-        if d < dis_limit:
-            nn_loc = np.append(nn_loc,labels[i].reshape(1,3),axis=0)
-            nn_cc = np.append(nn_cc,np.corrcoef(target_ecg, ecgs[i])[0, 1])
-            nn_dis = np.append(nn_dis,d)
-    nn_dis = nn_dis.reshape(-1,1)
-    nn_cc = nn_cc.reshape(-1,1)
-    near_points = np.concatenate((nn_loc, nn_dis, nn_cc),axis =1)
-    table = np.concatenate((first_row,near_points), axis = 0)
-    table = np.around(table,2)
-    plt.figure(2)
-    plt.scatter(table[:,3],table[:,4])
-    plt.xlabel("distance")
-    plt.ylabel("correlation")
-    plt.show
-    return table
 
 def plot_exploration(visited, color_gradient):
     """
@@ -183,14 +133,7 @@ if __name__ == '__main__':
     # print("RS # Points/CC: ", points, cc)
     
 
-    table=nearest(tidx,labels,ecgs,15)
-    x= PrettyTable()
-    x.field_names = ['x', 'y','z','Distance','Corr']
-    for row in table:
-        x.add_row(row)
-    print(x)
-    
-    trend(target,optimizer.visited,optimizer.predicted)
+
     
     graph_cc_distribution(target_ecg)
     color_gradient = []

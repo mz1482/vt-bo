@@ -6,7 +6,7 @@ File that holds the Bayesian Opt experiments for the 3D heart mesh
 """
 import pandas as pd
 import numpy as np
-from data_analysis import get_heart_bounds, correlation_coef, graph_3d, graph_cc_distribution, graph_dist_over_axis
+from data_analysis import get_heart_bounds, correlation_coef, graph_3d, graph_cc_distribution, graph_dist_over_axis, narrow,corrplot3axes
 from BayesOptLib.bayes_opt.bayesian_optimization import BayesianOptimization
 from RandomSampler import RandomSampler
 import matplotlib
@@ -52,7 +52,7 @@ def optimize_point(labels):
     )
 
     # Maximize over x number of points
-    optimizer.maximize(init_points=10, n_iter=40,  acq="ucb", kappa = 2)
+    optimizer.maximize(init_points=10, n_iter=15,  acq="ucb", kappa = 2)
     return optimizer
 
 
@@ -169,7 +169,7 @@ if __name__ == '__main__':
 
     # Get plots of target CC distribution
     
-    # graph_dist_over_axis(target_ecg)
+#     graph_dist_over_axis(target_ecg)
 
     # Optimize for target and plot path
     optimizer = optimize_point(labels)
@@ -183,16 +183,17 @@ if __name__ == '__main__':
     # print("RS # Points/CC: ", points, cc)
     
 
-    table=nearest(tidx,labels,ecgs,15)
-    x= PrettyTable()
-    x.field_names = ['x', 'y','z','Distance','Corr']
-    for row in table:
-        x.add_row(row)
-    print(x)
+#     table=nearest(tidx,labels,ecgs,15)
+#     x= PrettyTable()
+#     x.field_names = ['x', 'y','z','Distance','Corr']
+#     for row in table:
+#         x.add_row(row)
+#     print(x)
     
     trend(target,optimizer.visited,optimizer.predicted)
-    
+    narrow(target,target_ecg,ecgs,labels,15)
     graph_cc_distribution(target_ecg)
+    x,y,z,nn_cc = corrplot3axes(tidx,labels,ecgs,15)
     color_gradient = []
     # Loop through all points to get CC with that point
     for ecg, coord in zip(ecgs, labels):

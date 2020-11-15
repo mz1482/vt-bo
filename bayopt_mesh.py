@@ -48,7 +48,7 @@ def optimize_point(labels,bounds):
     )
 
     # Maximize over x number of points
-    optimizer.maximize(init_points=10, n_iter=15,  acq="ucb", kappa = 2)
+    optimizer.maximize(init_points=10, n_iter=10,  acq="ucb", kappa = 2)
     return optimizer
 
 

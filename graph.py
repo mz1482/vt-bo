@@ -84,13 +84,13 @@ def graph_cc_distribution(target,ecgs,labels):
         cc = correlation_coef(target, ecg)
         color_gradient.append(cc)
         if cc >= .9:
-            blue.append(coord)
-        elif .9 > cc >= .75:
-            green.append(coord)
-        elif .75 > cc > .3:
-            yellow.append(coord)
-        else:
             red.append(coord)
+        elif .9 > cc >= .75:
+            yellow.append(coord)
+        elif .75 > cc > .3:
+            green.append(coord)
+        else:
+            blue.append(coord)
 
     # Plot out the points according to color
     fig = plt.figure(55)
@@ -98,10 +98,10 @@ def graph_cc_distribution(target,ecgs,labels):
 
     # blue, green, yellow, red = np.array(blue), np.array(green), np.array(yellow), np.array(red)
     ax.scatter(true[0], true[1], true[2], color='black')
-    # ax.scatter(xs=blue[:, 0], ys=blue[:, 1], zs=blue[:, 2], color='blue')
-    # ax.scatter(xs=green[:, 0], ys=green[:, 1], zs=green[:, 2], color='green')
-    # ax.scatter(xs=yellow[:, 0], ys=yellow[:, 1], zs=yellow[:, 2], color='yellow')
-    # ax.scatter(xs=red[:, 0], ys=red[:, 1], zs=red[:, 2], color='gray')
+#     ax.scatter(xs=blue[:, 0], ys=blue[:, 1], zs=blue[:, 2], color='blue')
+#     ax.scatter(xs=green[:, 0], ys=green[:, 1], zs=green[:, 2], color='green')
+#     ax.scatter(xs=yellow[:, 0], ys=yellow[:, 1], zs=yellow[:, 2], color='yellow')
+#     ax.scatter(xs=red[:, 0], ys=red[:, 1], zs=red[:, 2], color='gray')
     ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
@@ -133,13 +133,13 @@ def narrow(target,target_ecg,ecgs,labels,limit):
         cc = correlation_coef(target_ecg, ecg)
         color_gradient.append(cc)
         if cc >= .9:
-            blue.append(coord)
-        elif .9 > cc >= .75:
-            green.append(coord)
-        elif .75 > cc > .3:
-            yellow.append(coord)
-        else:
             red.append(coord)
+        elif .9 > cc >= .75:
+            yellow.append(coord)
+        elif .75 > cc > .3:
+            green.append(coord)
+        else:
+            blue.append(coord)
 
     # Plot out the points according to color
     fig = plt.figure(3)
@@ -219,7 +219,7 @@ def graph_dist_over_axis(target):
     ax = fig.gca(projection='3d')
 
     print(labels[:, 0].shape, np.asarray(ccs).shape)
-    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=ccs)
+    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:,2])
     plt.xlabel('x')
     plt.ylabel('y')
     for angle in range(0, 360):

@@ -12,6 +12,39 @@ def correlation_coef(one, two):
     """ Returns the CC between two ECG signals"""
     return np.corrcoef(one, two)[0, 1]
 
+def euclidean_distance(one, two):
+    return np.sqrt(np.sum((one - two)**2))
+
+def approx(c1,labels):
+    dist = []
+    for i in range(len(labels)):
+        d = euclidean_distance(c1, labels[i])
+        dist = np.append(dist,d)
+    for j in range(len(dist)):
+        if dist[j]==np.amin(dist):
+            break
+    return labels[j]
+
+def corners(labels):
+    minx,maxx = np.amin(labels[:,0]),np.amax(labels[:,0])
+    miny,maxy = np.amin(labels[:,1]),np.amax(labels[:,1])
+    minz,maxz = np.amin(labels[:,2]),np.amax(labels[:,2])
+    c1 = np.array([minx,miny,minz])
+    c2 = np.array([maxx,miny,minz])
+    c3 = np.array([maxx,maxy,minz])
+    c4 = np.array([minx,maxy,minz])
+    c5 = np.array([minx,miny,maxz])
+    c6 = np.array([maxx,miny,maxz])
+    c7 = np.array([maxx,maxy,maxz])
+    c8 = np.array([minx,maxy,maxz])
+    c = np.asarray([c1,c2,c3,c4,c5,c6,c7,c8])   
+    c9 = np.asarray([np.mean(c[:,0]),np.mean(c[:,1]),np.mean(c[:,2])]).reshape(1,3)
+    c = np.concatenate((c, c9),axis =0)
+    for i in range(len(c)):
+        c[i] = approx(c[i],labels)
+    return c
+
+
 def trend(target,visited,actual):
     visited = np.asarray(visited)
     actual = np.asarray(actual)
@@ -105,7 +138,7 @@ def graph_cc_distribution(target,ecgs,labels):
     ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
-    fig.show()
+    plt.show()
     
     
 def narrow(target,target_ecg,ecgs,labels,limit):
@@ -158,7 +191,7 @@ def narrow(target,target_ecg,ecgs,labels,limit):
 #     ax.set_ylim3d(np.amin(n_labels[:,1]),np.amax(n_labels[:,1]))
 #     ax.set_zlim3d(np.amin(n_labels[:,2]),np.amax(n_labels[:,2]))
     fig.suptitle('Narrowing the space around the target', fontsize=16)
-    fig.show()
+    plt.show()
 
     
     
@@ -228,6 +261,26 @@ def graph_dist_over_axis(target):
         plt.pause(.001)
 #     fig.show()
 
+
+
+def cube(target,ecgs,labels):
+    c = corners(labels)
+    true = None
+    color_gradient = []
+    for ecg, coord in zip(ecgs, labels):
+        if np.array_equal(target, ecg):
+            true = coord
+            color_gradient.append(1)
+            continue
+        cc = correlation_coef(target, ecg)
+        color_gradient.append(cc)
+    fig = plt.figure(20)
+    ax = fig.gca(projection='3d')
+    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
+    ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
+    ax.scatter(c[:,0], c[:,1], c[:,2], color='red', marker = "*", s = 150)
+    ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
+    plt.show()
 
 def plot_exploration(target,labels,visited, color_gradient):
     """

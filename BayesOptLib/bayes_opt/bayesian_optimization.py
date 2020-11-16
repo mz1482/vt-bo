@@ -109,7 +109,7 @@ class Observable(object):
 
 
 class BayesianOptimization(Observable):
-    def __init__(self, f, pbounds, random_state=None, verbose=2, real_set=None, cc_thres=0.95, mm_thres=15):
+    def __init__(self, f, pbounds, random_state=None, verbose=2, real_set=None, cc_thres=0.99, mm_thres=15):
         """"""
         self._random_state = ensure_rng(random_state)
 
@@ -124,7 +124,7 @@ class BayesianOptimization(Observable):
         kernels = [None, Matern(nu=2.5), ExpSineSquared()]
         self._gp = GaussianProcessRegressor(
             kernel=kernels[0],
-            alpha=.0001,
+            alpha=.001,
             normalize_y=True,
             n_restarts_optimizer=0,
             random_state=self._random_state,

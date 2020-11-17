@@ -59,7 +59,7 @@ def trend(target,visited,actual):
         dis_tar_act = np.append(dis_tar_act,d2)
         d3 = np.linalg.norm(actual[i,:]-visited[i,:])
         dis_dif = np.append(dis_dif,d3)
-    plt.figure(5)
+    fig = plt.figure(10)
     plt.plot(dis_tar_vis,label = 'between target and visited')
     plt.plot(dis_tar_act,label = 'between target and predicted')
     plt.plot(dis_dif, label = 'between predicted and visited')
@@ -89,7 +89,7 @@ def nearest(tidx,labels,ecgs,dis_limit):
     near_points = np.concatenate((nn_loc, nn_dis, nn_cc),axis =1)
     table = np.concatenate((first_row,near_points), axis = 0)
     table = np.around(table,2)
-    plt.figure(2)
+    fig = plt.figure(2)
     plt.scatter(table[:,3],table[:,4])
     plt.xlabel("distance")
     plt.ylabel("correlation")
@@ -126,7 +126,7 @@ def graph_cc_distribution(target,ecgs,labels):
             blue.append(coord)
 
     # Plot out the points according to color
-    fig = plt.figure(55)
+    fig = plt.figure(3)
     ax = fig.gca(projection='3d')
 
     # blue, green, yellow, red = np.array(blue), np.array(green), np.array(yellow), np.array(red)
@@ -175,21 +175,12 @@ def narrow(target,target_ecg,ecgs,labels,limit):
             blue.append(coord)
 
     # Plot out the points according to color
-    fig = plt.figure(3)
+    fig = plt.figure(4)
     ax = fig.gca(projection='3d')
-
-    # blue, green, yellow, red = np.array(blue), np.array(green), np.array(yellow), np.array(red)
     ax.scatter(true[0], true[1], true[2], color='black')
-    # ax.scatter(xs=blue[:, 0], ys=blue[:, 1], zs=blue[:, 2], color='blue')
-    # ax.scatter(xs=green[:, 0], ys=green[:, 1], zs=green[:, 2], color='green')
-    # ax.scatter(xs=yellow[:, 0], ys=yellow[:, 1], zs=yellow[:, 2], color='yellow')
-    # ax.scatter(xs=red[:, 0], ys=red[:, 1], zs=red[:, 2], color='gray')
     ax.scatter(xs=n_labels[:, 0], ys=n_labels[:, 1], zs=n_labels[:, 2], s=50,c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
-#     ax.set_xlim3d(np.amin(n_labels[:,0]), np.amax(n_labels[:,0]))
-#     ax.set_ylim3d(np.amin(n_labels[:,1]),np.amax(n_labels[:,1]))
-#     ax.set_zlim3d(np.amin(n_labels[:,2]),np.amax(n_labels[:,2]))
     fig.suptitle('Narrowing the space around the target', fontsize=16)
     plt.show()
 
@@ -248,7 +239,7 @@ def graph_dist_over_axis(target):
         ccs.append(correlation_coef(target, ecg))
 
     # Plot out the points according to color
-    fig = plt.figure(88)
+    fig = plt.figure(6)
     ax = fig.gca(projection='3d')
 
     print(labels[:, 0].shape, np.asarray(ccs).shape)
@@ -274,7 +265,7 @@ def cube(target,ecgs,labels):
             continue
         cc = correlation_coef(target, ecg)
         color_gradient.append(cc)
-    fig = plt.figure(20)
+    fig = plt.figure(7)
     ax = fig.gca(projection='3d')
     ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
@@ -290,6 +281,7 @@ def plot_exploration(target,labels,visited, color_gradient):
     """
     path = np.array(visited)
     color_gradient = np.array(color_gradient)
+    c = corners(labels)
     # for i in range(len(path)):
     #     cur = np.array(path[:i])
     #     rest = np.delete(labels, np.where(np.isin(labels, cur)), axis=0)
@@ -308,7 +300,7 @@ def plot_exploration(target,labels,visited, color_gradient):
     # Plot final for viewing
     rest = np.delete(labels, np.where(np.isin(labels, path)), axis=0)
     color_gradient = np.delete(color_gradient, np.where(np.isin(labels, path)), axis=0)
-    fig = plt.figure(0)
+    fig = plt.figure(8)
     ax = fig.gca(projection='3d')
 
     ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75, c=color_gradient, cmap = plt.cm.rainbow)
@@ -319,5 +311,6 @@ def plot_exploration(target,labels,visited, color_gradient):
     for i in range(len(m)):
         ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i)), size=10, zorder=1, color='k')
     ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black', s = 100)
+    ax.scatter(c[:,0], c[:,1], c[:,2], color='red', marker = "*", s = 200)
     fig.suptitle('Path of BO to target', fontsize=16)
     plt.show()

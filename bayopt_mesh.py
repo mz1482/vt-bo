@@ -13,6 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.metrics.pairwise import euclidean_distances
 matplotlib.use('Qt5Agg')  # or can use 'TkAgg', whatever you have/prefer
 from prettytable import PrettyTable
+from scipy.stats import wasserstein_distance
 
 def get_index(label):
     """
@@ -36,7 +37,7 @@ def black_box(x, y, z):
     :return: CC of that point and the target
     """
     sample_ecg = ecgs[get_index(np.array([x, y, z]))]
-    return correlation_coef(target_ecg, sample_ecg) - np.linalg.norm(sample_ecg-target_ecg)/10000
+    return correlation_coef(target_ecg, sample_ecg) - np.linalg.norm(sample_ecg-target_ecg)/7212
 
 
 def optimize_point(labels,bounds):
@@ -48,7 +49,7 @@ def optimize_point(labels,bounds):
     )
 
     # Maximize over x number of points
-    optimizer.maximize(init_points=10, n_iter=20,  acq="ucb", kappa = 2)
+    optimizer.maximize(init_points=10, n_iter=5,  acq="ucb", kappa = 2)
     return optimizer
 
 
@@ -62,12 +63,12 @@ if __name__ == '__main__':
     tidx = np.random.randint(0, labels.shape[0])
     target, target_ecg = labels[tidx], ecgs[tidx]
     print("Target: ", target)
-    cube(target_ecg,ecgs,labels)
+#     cube(target_ecg,ecgs,labels)
     # Get plots of target CC distribution    
 #     graph_dist_over_axis(target_ecg)
     # Optimize for target and plot path
     
-#     optimizer = optimize_point(labels,bounds)   
+    optimizer = optimize_point(labels,bounds)   
     
 #     table=nearest(tidx,labels,ecgs,15)
 #     x= PrettyTable()
@@ -77,19 +78,21 @@ if __name__ == '__main__':
 #     print(x)
     
 #     trend(target,optimizer.visited,optimizer.predicted)
-#     narrow(target,target_ecg,ecgs,labels,15)
-    graph_cc_distribution(target_ecg,ecgs,labels)
-#     x,y,z,nn_cc = corrplot3axes(tidx,labels,ecgs,15)
 
-#     color_gradient = []
-#     # Loop through all points to get CC with that point
-#     for ecg, coord in zip(ecgs, labels):
-#         if np.array_equal(target_ecg, ecg):
-#             true = coord
-#             color_gradient.append(1)
-#             continue
 
-#         cc = correlation_coef(target_ecg, ecg)
-#         color_gradient.append(cc)
+    color_gradient = []
+    # Loop through all points to get CC with that point
+    for ecg, coord in zip(ecgs, labels):
+        if np.array_equal(target_ecg, ecg):
+            true = coord
+            color_gradient.append(1)
+            continue
 
-#     plot_exploration(target,labels,optimizer.visited, color_gradient)
+        cc = correlation_coef(target_ecg, ecg)
+        color_gradient.append(cc)
+
+    plot_exploration(target,labels,optimizer.visited, color_gradient)
+    
+#     graph_cc_distribution(target_ecg,ecgs,labels)
+    x,y,z,nn_cc = corrplot3axes(tidx,labels,ecgs,15)
+    narrow(target,target_ecg,ecgs,labels,15)

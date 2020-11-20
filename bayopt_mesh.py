@@ -49,7 +49,7 @@ def optimize_point(labels,bounds):
     )
 
     # Maximize over x number of points
-    optimizer.maximize(init_points=10, n_iter=5,  acq="ucb", kappa = 2)
+    optimizer.maximize(init_points=10, n_iter=25,  acq="ucb", kappa = 2)
     return optimizer
 
 
@@ -77,7 +77,7 @@ if __name__ == '__main__':
 #         x.add_row(row)
 #     print(x)
     
-#     trend(target,optimizer.visited,optimizer.predicted)
+    trend(target,optimizer.visited,optimizer.predicted)
 
 
     color_gradient = []

@@ -37,7 +37,7 @@ def black_box(x, y, z):
     :return: CC of that point and the target
     """
     sample_ecg = ecgs[get_index(np.array([x, y, z]))]
-    return correlation_coef(target_ecg, sample_ecg) - np.linalg.norm(sample_ecg-target_ecg)/7212
+    return correlation_coef(target_ecg, sample_ecg)
 
 
 def optimize_point(labels,bounds):

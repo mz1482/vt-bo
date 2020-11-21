@@ -9,6 +9,8 @@ from .util import UtilityFunction, acq_max, ensure_rng, acq_max_dis
 
 from sklearn.gaussian_process.kernels import Matern, ExpSineSquared
 from sklearn.gaussian_process import GaussianProcessRegressor
+import matplotlib
+from matplotlib import pyplot as plt
 
 
 def check(test, array):
@@ -337,6 +339,15 @@ class BayesianOptimization(Observable):
                 break
 
         self.dispatch(Events.OPTMIZATION_END)
+        
+        X = np.arange(-118, 94, 0.05)
+        Y = np.arange(-118, 94, 0.05)
+        Z = np.arange(-118, 94, 0.05)
+        R = np.array([X,Y,Z]).T
+
+        G = self._gp.predict(R,return_std=False)
+        plt.scatter(X,G)
+        plt.show()
 
         # Returns whether the runtime were successful in finding the last site
         return self._gp,self.visited

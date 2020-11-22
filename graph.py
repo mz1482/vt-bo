@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import gridspec
+from matplotlib import cm
 
 
 
@@ -252,7 +253,25 @@ def graph_dist_over_axis(target):
         plt.pause(.001)
 #     fig.show()
 
-
+def gp_plot(gp):
+#     fig = plt.figure()
+#     ax = fig.gca(projection='3d')
+    X = np.arange(-118, 94, 0.25)
+    Y = np.arange(-118, 94, 0.25)
+    Z = np.arange(-118, 94, 0.25)
+    R = np.array([X,Y,Z]).T
+    G = gp.predict(R,return_std=False).reshape(len(X),1)
+#     surf = ax.plot_surface(X, Y, G, cmap=cm.coolwarm,
+#                        linewidth=0, antialiased=False)
+    fig, axs = plt.subplots(3)
+    axs[0].scatter(X,G,color = 'green',label = 'x axis')
+    axs[0].legend()
+    axs[1].scatter(Y,G,color = 'red',label = 'y axis')
+    axs[1].legend()
+    axs[2].scatter(Z,G,color = 'blue',label = 'z axis')
+    axs[2].legend()
+    fig.suptitle('GP on 3 axis', fontsize=16)
+    plt.show()
 
 def cube(target,ecgs,labels):
     c = corners(labels)
@@ -280,6 +299,9 @@ def plot_exploration(target,labels,visited, color_gradient):
     :return:
     """
     path = np.array(visited)
+    path1 = path[0:5,:]
+    path2 = path[5:len(path),:]
+    
     color_gradient = np.array(color_gradient)
 #     c = corners(labels)
     # for i in range(len(path)):
@@ -306,6 +328,7 @@ def plot_exploration(target,labels,visited, color_gradient):
     ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75, c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(xs=path[:, 0], ys=path[:, 1], zs=path[:, 2], zdir='z', color='blue')
     ax.plot(path[:, 0], path[:, 1], path[:, 2], color = 'blue')
+    ax.plot(path1[:, 0], path1[:, 1], path1[:, 2], color = 'red')
 
     m = path
     for i in range(len(m)):

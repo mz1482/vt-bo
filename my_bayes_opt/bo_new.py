@@ -66,7 +66,7 @@ def approx(c1,labels):
         
 
 class mybo(object):
-    def __init__(self, f, pbounds, real_set=None,verbose=1):
+    def __init__(self, f, pbounds, real_set=None,verbose=2,cc_thres=0.99, mm_thres=15):
         # Store the original dictionary
         self.pbounds = pbounds
         self.real_set = real_set
@@ -89,6 +89,11 @@ class mybo(object):
         self.init_points = []
         self.x_init = []
         self.y_init = []
+        # Target thres to hit between suggestion and pred
+        self.cc_thres = cc_thres
+
+        # Distance threshold for grabbing the next point
+        self.mm_thres = mm_thres
         
         # Numpy array place holders
         self.X = None
@@ -283,6 +288,8 @@ class mybo(object):
                         y_max=y_max,
                         bounds=self.bounds)
         x_max = approx(x_max,self.real_set)
+#         x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)
+#         print(x_max)
  
         # Print new header
         if self.verbose:
@@ -303,6 +310,7 @@ class mybo(object):
                                           self.bounds[:, 1],
                                           size=self.bounds.shape[0])
                 x_max = approx(x_max,self.real_set)
+#                 x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)
  
                 pwarning = True
  
@@ -317,13 +325,13 @@ class mybo(object):
             # Update maximum value to search for next probe point.
             if self.Y[-1] > y_max:
                 y_max = self.Y[-1]
- 
             # Maximize acquisition function to find next probing point
             x_max = acq_max(ac=self.util.utility,
                             gp=self.gp,
                             y_max=y_max,
                             bounds=self.bounds)
             x_max = approx(x_max,self.real_set)
+#             x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)
  
             # Print stuff
             if self.verbose:
@@ -342,6 +350,7 @@ class mybo(object):
         # Print a final report if verbose active.
         if self.verbose:
             self.plog.print_summary()
+        return self.gp
             
     
     

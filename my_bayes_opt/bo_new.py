@@ -8,11 +8,68 @@ from gprmy import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern
 from my_helpers import my_utility_function, unique_rows, acq_max,PrintLog
 
+
+def check(test, array):
+    """
+    Simple generator to check whether a 1d array lies within a multidimensional array
+    :param test: value to test for
+    :param array: multidimensional array to check through
+    :return: true iff test in array
+    """
+    return any(np.array_equal(x, test) for x in array)
+
+
+def euclidean_distance(one, two):
+    """ Computes the euclidean distance between two coordinates """
+    return np.sqrt(np.sum((one - two)**2))
+
+
+def approximate_point(suggestion, real_set, visited, threshold):
+    """
+    Handles approximating the given suggestion from the acquisition function to a discrete value within the
+    input space, ie a real XYZ
+    :param visited: visited set of the BayOpt class to avoid dups
+    :param real_set: set of real labels to use
+    :param suggestion: XYZ point to approximate
+    :param threshold: how close the closest point has to be to be considered
+    :return: closest real point
+    """
+    closest, closest_point = np.inf, None
+    for coord in real_set:
+        # Skip if already visited
+        if check(coord, visited):
+            continue
+
+        # Get euclid dist and check for closeness
+        dist = euclidean_distance(coord, suggestion)
+        if dist < closest:
+            closest = dist
+            closest_point = coord
+
+    # Check if nearest point under threshold
+    if closest <= threshold:
+        return closest_point
+    else:
+        return None
+
+    
+    
+def approx(c1,labels):
+    dist = []
+    for i in range(len(labels)):
+        d = euclidean_distance(c1, labels[i])
+        dist = np.append(dist,d)
+    for j in range(len(dist)):
+        if dist[j]==np.amin(dist):
+            break
+    return labels[j]
+        
+
 class mybo(object):
-    def __init__(self, f, pbounds, verbose=1):
+    def __init__(self, f, pbounds, real_set=None,verbose=1):
         # Store the original dictionary
         self.pbounds = pbounds
-        
+        self.real_set = real_set
         self.keys = list(pbounds.keys())
         #no of parameters
         self.dim = len(pbounds)
@@ -27,6 +84,8 @@ class mybo(object):
         self.initialized = False
  
         # Initialization lists --- stores starting points before process begins
+        self.visited = []
+        self.predicted = []
         self.init_points = []
         self.x_init = []
         self.y_init = []
@@ -57,16 +116,15 @@ class mybo(object):
         self.verbose = verbose
         
     def init(self,init_points):
-        l = [np.random.uniform(x[0], x[1], size=init_points) for x in self.bounds]
-#         l = np.random.multivariate_normal(np.zeros(self.dim), 1.0/10*np.diag(np.ones(self.dim)),init_points)
-        self.init_points += list(map(list, zip(*l)))
         y_init = []
+        idx= np.random.choice(len(self.real_set), size=init_points, replace=False)
+        self.init_points = self.real_set[idx,:]
         for x in self.init_points:
             y_init.append(self.f(**dict(zip(self.keys, x))))
             if self.verbose:
                 self.plog.print_step(x, y_init[-1])
-        self.init_points +=self.x_init
-        y_init += self.y_init
+#         self.init_points +=self.x_init
+#         y_init += self.y_init
         # Turn it into np array and store.
         self.X = np.asarray(self.init_points)
         self.Y = np.asarray(y_init)
@@ -224,6 +282,7 @@ class mybo(object):
                         gp=self.gp,
                         y_max=y_max,
                         bounds=self.bounds)
+        x_max = approx(x_max,self.real_set)
  
         # Print new header
         if self.verbose:
@@ -243,6 +302,7 @@ class mybo(object):
                 x_max = np.random.uniform(self.bounds[:, 0],
                                           self.bounds[:, 1],
                                           size=self.bounds.shape[0])
+                x_max = approx(x_max,self.real_set)
  
                 pwarning = True
  
@@ -263,6 +323,7 @@ class mybo(object):
                             gp=self.gp,
                             y_max=y_max,
                             bounds=self.bounds)
+            x_max = approx(x_max,self.real_set)
  
             # Print stuff
             if self.verbose:
@@ -277,14 +338,10 @@ class mybo(object):
                                }
             self.res['all']['values'].append(self.Y[-1])
             self.res['all']['params'].append(dict(zip(self.keys, self.X[-1])))
-            train_x = self.X
-            train_y = self.Y
-            k_train=self.gp.fit2(self.X[ur], self.Y[ur])
  
         # Print a final report if verbose active.
         if self.verbose:
             self.plog.print_summary()
-        return train_x,train_y,k_train, self.gp
             
     
     

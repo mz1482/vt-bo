@@ -281,7 +281,7 @@ def plot_exploration(target,labels,visited, color_gradient):
     """
     path = np.array(visited)
     color_gradient = np.array(color_gradient)
-    c = corners(labels)
+#     c = corners(labels)
     # for i in range(len(path)):
     #     cur = np.array(path[:i])
     #     rest = np.delete(labels, np.where(np.isin(labels, cur)), axis=0)
@@ -311,6 +311,6 @@ def plot_exploration(target,labels,visited, color_gradient):
     for i in range(len(m)):
         ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i)), size=10, zorder=1, color='k')
     ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black', s = 100)
-    ax.scatter(c[:,0], c[:,1], c[:,2], color='red', marker = "*", s = 200)
+#     ax.scatter(c[:,0], c[:,1], c[:,2], color='red', marker = "*", s = 200)
     fig.suptitle('Path of BO to target', fontsize=16)
     plt.show()

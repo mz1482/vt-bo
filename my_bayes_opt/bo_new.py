@@ -350,7 +350,7 @@ class mybo(object):
         # Print a final report if verbose active.
         if self.verbose:
             self.plog.print_summary()
-        return self.gp
+        return self.gp, self.X
             
     
     

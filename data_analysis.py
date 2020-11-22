@@ -89,7 +89,17 @@ def data_resolution():
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     plt.show()
 
+
     
+def corr_check(x,labels,ecgs,target_ecg):
+    """
+    Check the cc from the points selected from GP with the target ecg
+    """
+    for i in range(len(labels)):
+        if np.array_equal(x, labels[i]):
+            e = ecgs[i]
+            break
+    return np.corrcoef(e,target_ecg)
     
 
 def get_heart_bounds(labels):

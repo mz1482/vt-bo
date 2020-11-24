@@ -4,7 +4,7 @@ File that holds the Bayesian Opt experiments for the 3D heart mesh
 import pandas as pd
 import numpy as np
 from data_analysis import get_heart_bounds, correlation_coef, graph_3d
-from graph import narrow,corrplot3axes,trend,nearest,plot_exploration, graph_dist_over_axis, graph_cc_distribution, cube
+from graph import narrow,corrplot3axes,trend,nearest,plot_exploration, graph_dist_over_axis, graph_cc_distribution, cube, gp_plot, gp_plot2
 from BayesOptLib.bayes_opt.bayesian_optimization import BayesianOptimization
 from RandomSampler import RandomSampler
 import matplotlib
@@ -37,7 +37,7 @@ def black_box(x, y, z):
     :return: CC of that point and the target
     """
     sample_ecg = ecgs[get_index(np.array([x, y, z]))]
-    return correlation_coef(target_ecg, sample_ecg)
+    return abs(correlation_coef(target_ecg, sample_ecg))
 
 
 def optimize_point(labels,bounds):
@@ -64,11 +64,11 @@ if __name__ == '__main__':
     target, target_ecg = labels[tidx], ecgs[tidx]
     print("Target: ", target)
 #     cube(target_ecg,ecgs,labels)
-    # Get plots of target CC distribution    
-#     graph_dist_over_axis(target_ecg)
+#     Get plots of target CC distribution    
+
     # Optimize for target and plot path
     
-    optimizer = optimize_point(labels,bounds)   
+#     optimizer = optimize_point(labels,bounds)   
     
 #     table=nearest(tidx,labels,ecgs,15)
 #     x= PrettyTable()
@@ -77,7 +77,14 @@ if __name__ == '__main__':
 #         x.add_row(row)
 #     print(x)
     
-    trend(target,optimizer.visited,optimizer.predicted)
+    optimizer = BayesianOptimization(f=black_box,pbounds=bounds,random_state=None, real_set=labels)
+    gp,X = optimizer.gpfit(init_points=5, n_iter=10,  acq="ucb", kappa = 2,kappa_decay=0.75,kappa_decay_delay=5)
+    graph_cc_distribution(target_ecg,ecgs,labels)
+    gp_plot(gp)
+    gp_plot2(gp,labels)
+
+    
+#     trend(target,optimizer.visited,optimizer.predicted)
 
 
     color_gradient = []
@@ -92,7 +99,7 @@ if __name__ == '__main__':
         color_gradient.append(cc)
 
     plot_exploration(target,labels,optimizer.visited, color_gradient)
-    
-#     graph_cc_distribution(target_ecg,ecgs,labels)
-    x,y,z,nn_cc = corrplot3axes(tidx,labels,ecgs,15)
-    narrow(target,target_ecg,ecgs,labels,15)
+ #     graph_dist_over_axis(target_ecg)   
+
+#     x,y,z,nn_cc = corrplot3axes(tidx,labels,ecgs,15)
+#     narrow(target,target_ecg,ecgs,labels,15)

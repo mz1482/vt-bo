@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from gprmy import GaussianProcessRegressor
 # from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, Matern
+from sklearn.gaussian_process.kernels import RBF, Matern, ExpSineSquared
 from my_helpers import my_utility_function, unique_rows, acq_max,PrintLog
 
 
@@ -101,10 +101,10 @@ class mybo(object):
  
         # Counter of iterations
         self.i = 0
- 
+        kernels = [None, Matern(nu=2.5), ExpSineSquared()]
         # Internal GP regressor
         self.gp = GaussianProcessRegressor(
-            kernel=Matern(length_scale=1),
+            kernel=kernels[1],
             n_restarts_optimizer=25,
         )
         # PrintLog object

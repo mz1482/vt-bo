@@ -57,7 +57,7 @@ tidx = np.random.randint(0, labels.shape[0])
 target, target_ecg = labels[tidx], ecgs[tidx]
 # optimizer = optimize_point(labels,bounds)  
 optimizer = bo_new.mybo(f=black_box,pbounds=bounds, real_set=labels)
-gp = optimizer.maximize(init_points=10, n_iter=15,  acq="ucb", kappa = 2)
+gp,X = optimizer.maximize(init_points=10, n_iter=15,  acq="ucb", kappa = 2)
 gp_plot(gp)
 
 # color_gradient = []

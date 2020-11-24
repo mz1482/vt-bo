@@ -127,7 +127,7 @@ def graph_cc_distribution(target,ecgs,labels):
             blue.append(coord)
 
     # Plot out the points according to color
-    fig = plt.figure(3)
+    fig = plt.figure(33)
     ax = fig.gca(projection='3d')
 
     # blue, green, yellow, red = np.array(blue), np.array(green), np.array(yellow), np.array(red)
@@ -139,6 +139,7 @@ def graph_cc_distribution(target,ecgs,labels):
     ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
+    fig.suptitle('Actual CC plot', fontsize=16)
     plt.show()
     
     
@@ -254,25 +255,38 @@ def graph_dist_over_axis(target):
 #     fig.show()
 
 def gp_plot(gp):
-#     fig = plt.figure()
-#     ax = fig.gca(projection='3d')
-    X = np.arange(-118, 94, 0.25)
-    Y = np.arange(-118, 94, 0.25)
-    Z = np.arange(-118, 94, 0.25)
-    R = np.array([X,Y,Z]).T
-    G = gp.predict(R,return_std=False).reshape(len(X),1)
-#     surf = ax.plot_surface(X, Y, G, cmap=cm.coolwarm,
-#                        linewidth=0, antialiased=False)
-    fig, axs = plt.subplots(3)
-    axs[0].scatter(X,G,color = 'green',label = 'x axis')
-    axs[0].legend()
-    axs[1].scatter(Y,G,color = 'red',label = 'y axis')
-    axs[1].legend()
-    axs[2].scatter(Z,G,color = 'blue',label = 'z axis')
-    axs[2].legend()
-    fig.suptitle('GP on 3 axis', fontsize=16)
+    X = np.arange(-94, 34, 4)
+    Y = np.arange(-118, 10, 4)
+    Z = np.arange(-90, 38, 4)
+    gpm = []
+    loc = np.empty((0, 3))
+    for i in range(len(X)):
+        for j in range(len(Y)):
+            for k in range(len(Z)):
+                d = gp.predict(np.array([X[i],Y[j],Z[k]]).reshape(1,-1),return_std=False)
+                loc = np.append(loc,np.array([X[i],Y[j],Z[k]]).reshape(1,-1),axis=0)
+                gpm = np.append(gpm,d)
+    fig = plt.figure(60)
+    ax = fig.gca(projection='3d')
+    ax.scatter(xs=loc[:, 0], ys=loc[:, 1], zs=loc[:, 2], c=gpm, cmap = plt.cm.rainbow)
+    ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
+    fig.suptitle('CC distribution on GP', fontsize=16)
     plt.show()
-
+    
+def gp_plot2(gp,labels):
+    color_gradient = []
+    for i in range(len(labels)):
+        cc = gp.predict(labels[i].reshape(1,-1),return_std=False)
+        color_gradient.append(cc)
+    color_gradient = np.array(color_gradient).flatten()
+    fig = plt.figure(55)
+    ax = fig.gca(projection='3d')
+    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
+    ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
+    fig.suptitle('GP plot', fontsize=16)
+    plt.show()
+        
+    
 def cube(target,ecgs,labels):
     c = corners(labels)
     true = None

@@ -7,7 +7,7 @@ from .event import Events, DEFAULT_EVENTS
 from .logger import _get_default_logger
 from .util import UtilityFunction, acq_max, ensure_rng, acq_max_dis
 
-from sklearn.gaussian_process.kernels import Matern, ExpSineSquared
+from sklearn.gaussian_process.kernels import Matern, ExpSineSquared, RBF
 from sklearn.gaussian_process import GaussianProcessRegressor
 import matplotlib
 from matplotlib import pyplot as plt
@@ -111,7 +111,7 @@ class Observable(object):
 
 
 class BayesianOptimization(Observable):
-    def __init__(self, f, pbounds, random_state=None, verbose=2, real_set=None, cc_thres=0.99, mm_thres=15):
+    def __init__(self, f, pbounds, random_state=None, verbose=2, real_set=None, cc_thres=0.99, mm_thres=100):
         """"""
         self._random_state = ensure_rng(random_state)
 
@@ -123,10 +123,10 @@ class BayesianOptimization(Observable):
         self._queue = Queue()
 
         # Internal GP regressor
-        kernels = [None, Matern(nu=2.5), ExpSineSquared()]
+        kernels = [None, Matern(nu=1), ExpSineSquared(), RBF(1)]
         self._gp = GaussianProcessRegressor(
-            kernel=kernels[0],
-            alpha=.001,
+            kernel=kernels[1],
+            alpha=.0001,
             normalize_y=True,
             n_restarts_optimizer=0,
             random_state=self._random_state,
@@ -184,17 +184,19 @@ class BayesianOptimization(Observable):
 
         # Sklearn's GP throws a large number of warnings at times, but
         # we don't really need to see them here.
+#         print("startgp")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self._gp.fit(self._space.params, self._space.target)
 
         # Finding argmax of the acquisition function.
+#         print("endgp")
         suggestion = acq_max(
             ac=utility_function.utility,
             gp=self._gp,
             y_max=self._space.target.max(),
             bounds=self._space.bounds,
-            n_warmup=1000,
+            n_warmup=10000,
             random_state=self._random_state
         )
 #         suggestion = acq_max_dis(
@@ -302,6 +304,8 @@ class BayesianOptimization(Observable):
                  n_iter=25,
                  acq='ucb',
                  kappa=2.576,
+                 kappa_decay=1,
+                 kappa_decay_delay=0,
                  xi=0.0,
                  **gp_params):
         """Mazimize your function"""
@@ -317,7 +321,11 @@ class BayesianOptimization(Observable):
 
         self.set_gp_params(**gp_params)
 
-        util = UtilityFunction(kind=acq, kappa=kappa, xi=xi)
+        util = UtilityFunction(kind=acq,
+                       kappa=kappa,
+                       xi=xi,
+                       kappa_decay=kappa_decay,
+                       kappa_decay_delay=kappa_decay_delay)
         iteration = 0
         while not self._queue.empty or iteration < n_iter:
             try:
@@ -338,17 +346,8 @@ class BayesianOptimization(Observable):
                 success = True
                 break
 
-        self.dispatch(Events.OPTMIZATION_END)
+#         self.dispatch(Events.OPTMIZATION_END)
         
-        X = np.arange(-118, 94, 0.05)
-        Y = np.arange(-118, 94, 0.05)
-        Z = np.arange(-118, 94, 0.05)
-        R = np.array([X,Y,Z]).T
-
-        G = self._gp.predict(R,return_std=False)
-        plt.scatter(X,G)
-        plt.show()
-
         # Returns whether the runtime were successful in finding the last site
         return self._gp,self.visited
     

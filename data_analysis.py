@@ -12,8 +12,8 @@ from BayesOptLib.bayes_opt.bayesian_optimization import BayesianOptimization
 # ecgs = pd.read_csv("simu-data/Heart3_SimuData.csv", header=None).to_numpy()
 # labels = pd.read_csv("simu-data/UVC3_Corresp2pacingSite.csv", header=None).to_numpy()[:, :3]
 
-ecgs = pd.read_csv("simu-data/Heart3_SimuData.csv", header=None).to_numpy()
-labels = pd.read_csv("simu-data/Heart3_XYZsub.csv", header=None).to_numpy() / 1000
+ecgs = pd.read_csv("new_simu-data/Heart1/Heart1_SimuData_4000.csv", header=None).to_numpy()
+labels = pd.read_csv("new_simu-data/Heart1/Coord1_4000.csv", header=None).to_numpy() / 1000
 
 def euclidean_distance(one, two):
     """ Computes the euclidean distance between two coordinates """
@@ -46,6 +46,29 @@ def get_closest_point(label):
 
     return closest, closest_idx
 
+def black_box(x, y, z):
+    """
+    Represents a black box function to maximize for CC of two ECGs given an XYZ coordinate
+    :param x:
+    :param y: coordinates of the prediction
+    :param z:
+    :return: CC of that point and the target
+    """
+    sample_ecg = ecgs[get_index(np.array([x, y, z]),labels)]
+    return abs(correlation_coef(target_ecg, sample_ecg))
+
+def get_index(label,labels):
+    """
+    Gets the idx of a label in the labels array
+    :param label: label to check for
+    :return: idx
+    """
+    idx = 0
+    for coord in labels:
+        if np.array_equal(label, coord):
+            break
+        idx += 1
+    return idx
 
 def data_resolution():
     """

@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import gridspec
 from matplotlib import cm
-
+import seaborn as sns
 
 
 
@@ -61,13 +61,13 @@ def trend(target,visited,actual):
         d3 = np.linalg.norm(actual[i,:]-visited[i,:])
         dis_dif = np.append(dis_dif,d3)
     fig = plt.figure(10)
-#     plt.plot(dis_tar_vis,label = 'between target and visited')
-#     plt.plot(dis_tar_act,label = 'between target and predicted')
+    plt.plot(dis_tar_vis,label = 'between target and visited')
+    plt.plot(dis_tar_act,label = 'between target and predicted')
     plt.plot(dis_dif, label = 'between predicted and visited')
     plt.xlabel("iteration")
     plt.ylabel("distance")
     plt.legend(loc='upper right')
-    plt.show
+    plt.show()
 
     
 def nearest(tidx,labels,ecgs,dis_limit):
@@ -97,9 +97,6 @@ def nearest(tidx,labels,ecgs,dis_limit):
     plt.show
     return table
 
-
-
-
 def graph_cc_distribution(target,ecgs,labels):
     """
     Function that handles color coating the 3d mesh to see the distribution of CC over distance from a given target
@@ -114,31 +111,15 @@ def graph_cc_distribution(target,ecgs,labels):
             true = coord
             color_gradient.append(1)
             continue
-
         cc = correlation_coef(target, ecg)
         color_gradient.append(cc)
-        if cc >= .9:
-            red.append(coord)
-        elif .9 > cc >= .75:
-            yellow.append(coord)
-        elif .75 > cc > .3:
-            green.append(coord)
-        else:
-            blue.append(coord)
-
-    # Plot out the points according to color
+    sns.set(style = "darkgrid")
     fig = plt.figure(33)
     ax = fig.gca(projection='3d')
-
-    # blue, green, yellow, red = np.array(blue), np.array(green), np.array(yellow), np.array(red)
-    ax.scatter(true[0], true[1], true[2], color='black')
-#     ax.scatter(xs=blue[:, 0], ys=blue[:, 1], zs=blue[:, 2], color='blue')
-#     ax.scatter(xs=green[:, 0], ys=green[:, 1], zs=green[:, 2], color='green')
-#     ax.scatter(xs=yellow[:, 0], ys=yellow[:, 1], zs=yellow[:, 2], color='yellow')
-#     ax.scatter(xs=red[:, 0], ys=red[:, 1], zs=red[:, 2], color='gray')
-    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
+    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2],s = 5, c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
+    fig.colorbar(img)
     fig.suptitle('Actual CC plot', fontsize=16)
     plt.show()
     
@@ -184,11 +165,7 @@ def narrow(target,target_ecg,ecgs,labels,limit):
     ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     fig.suptitle('Narrowing the space around the target', fontsize=16)
-    plt.show()
-
-    
-    
-    
+    plt.show() 
     
 def corrplot3axes(tidx,labels,ecgs,dis_limit):
     target_loc = labels[tidx]
@@ -255,9 +232,9 @@ def graph_dist_over_axis(target):
 #     fig.show()
 
 def gp_plot(gp):
-    X = np.arange(-94, 34, 4)
-    Y = np.arange(-118, 10, 4)
-    Z = np.arange(-90, 38, 4)
+    X = np.arange(-35, 95, 4)
+    Y = np.arange(-119, 3, 4)
+    Z = np.arange(-91, 8, 4)
     gpm = []
     loc = np.empty((0, 3))
     for i in range(len(X)):
@@ -268,8 +245,9 @@ def gp_plot(gp):
                 gpm = np.append(gpm,d)
     fig = plt.figure(60)
     ax = fig.gca(projection='3d')
-    ax.scatter(xs=loc[:, 0], ys=loc[:, 1], zs=loc[:, 2], c=gpm, cmap = plt.cm.rainbow)
+    img = ax.scatter(xs=loc[:, 0], ys=loc[:, 1], zs=loc[:, 2], c=gpm, cmap = plt.cm.rainbow)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
+    fig.colorbar(img)
     fig.suptitle('CC distribution on GP', fontsize=16)
     plt.show()
     
@@ -281,8 +259,9 @@ def gp_plot2(gp,labels):
     color_gradient = np.array(color_gradient).flatten()
     fig = plt.figure(55)
     ax = fig.gca(projection='3d')
-    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
+    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
+    fig.colorbar(img)
     fig.suptitle('GP plot', fontsize=16)
     plt.show()
         
@@ -300,54 +279,73 @@ def cube(target,ecgs,labels):
         color_gradient.append(cc)
     fig = plt.figure(7)
     ax = fig.gca(projection='3d')
-    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
+    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient,s = 5, cmap = plt.cm.rainbow)
     ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
     ax.scatter(c[:,0], c[:,1], c[:,2], color='red', marker = "*", s = 150)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     plt.show()
 
-def plot_exploration(target,labels,visited, color_gradient):
+def plot_exploration(init,target,target_ecg,labels,ecgs,visited):
     """
     Handles plotting the predictions of the network over time
     :param visited:
     :return:
     """
+    color_gradient = []
+    for ecg, coord in zip(ecgs, labels):
+        cc = correlation_coef(target_ecg, ecg)
+        color_gradient.append(cc)
+        
     path = np.array(visited)
-    path1 = path[0:5,:]
-    path2 = path[5:len(path),:]
+    path1 = path[0:init,:]
+    path2 = path[init:len(path),:]
     
-    color_gradient = np.array(color_gradient)
-#     c = corners(labels)
-    # for i in range(len(path)):
-    #     cur = np.array(path[:i])
-    #     rest = np.delete(labels, np.where(np.isin(labels, cur)), axis=0)
-    #
-    #     fig = plt.figure(0)
-    #     ax = fig.gca(projection='3d')
-    #
-    #     ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75, color='gray')
-    #     ax.scatter(xs=cur[:, 0], ys=cur[:, 1], zs=cur[:, 2], zdir='z', color='blue')
-    #     ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black')
-    #     ax.set_xlabel('x')
-    #     ax.set_ylabel('y')
-    #     ax.set_zlabel('z')
-    #     plt.pause(1)
-    #     fig.clear()
-    # Plot final for viewing
-    rest = np.delete(labels, np.where(np.isin(labels, path)), axis=0)
-    color_gradient = np.delete(color_gradient, np.where(np.isin(labels, path)), axis=0)
+    rest = np.delete(labels, np.where(np.isin(labels, path2)), axis=0)
+    color_gradient = np.delete(color_gradient, np.where(np.isin(labels, path2)), axis=0)
     fig = plt.figure(8)
     ax = fig.gca(projection='3d')
+    ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75,s = 5, c=color_gradient, cmap = plt.cm.rainbow)
+    ax.scatter(xs=path2[:, 0], ys=path2[:, 1], zs=path2[:, 2], zdir='z',s=20, color='blue')
+    ax.plot(path2[:, 0], path2[:, 1], path2[:, 2], color = 'black')
 
-    ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75, c=color_gradient, cmap = plt.cm.rainbow)
-    ax.scatter(xs=path[:, 0], ys=path[:, 1], zs=path[:, 2], zdir='z', color='blue')
-    ax.plot(path[:, 0], path[:, 1], path[:, 2], color = 'blue')
-    ax.plot(path1[:, 0], path1[:, 1], path1[:, 2], color = 'red')
-
-    m = path
+    m = path2
     for i in range(len(m)):
-        ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i)), size=10, zorder=1, color='k')
-    ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black', s = 100)
-#     ax.scatter(c[:,0], c[:,1], c[:,2], color='red', marker = "*", s = 200)
+        ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+init+1)), size=10, zorder=1, color='k')
+    ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black',marker = "*", s = 150)
+    fig.suptitle('Path of BO to target', fontsize=16)
+    plt.show()
+    
+def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
+    """
+    Handles plotting the predictions of the network over time
+    :param visited:
+    :return:
+    """
+    color_gradient = []
+    for ecg, coord in zip(ecgs, labels):
+        cc = correlation_coef(target_ecg, ecg)
+        color_gradient.append(cc)
+        
+    path_pred = np.array(predicted)
+    path = np.array(visited)
+    path1 = path[0:init,:]
+    path2 = path[init:len(path),:]
+    
+    rest = np.delete(labels, np.where(np.isin(labels, path2)), axis=0)
+    color_gradient = np.delete(color_gradient, np.where(np.isin(labels, path2)), axis=0)
+    fig = plt.figure(8)
+    ax = fig.gca(projection='3d')
+    ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75,s = 5, c=color_gradient, cmap = plt.cm.rainbow)
+    ax.scatter(xs=path2[:, 0], ys=path2[:, 1], zs=path2[:, 2], zdir='z',s=20, color='blue')
+    ax.scatter(xs=path_pred[:, 0], ys=path_pred[:, 1], zs=path_pred[:, 2], zdir='z',s=20, color='green')
+    ax.plot(path2[:, 0], path2[:, 1], path2[:, 2], color = 'black')
+    ax.plot(path_pred[:, 0], path_pred[:, 1], path_pred[:, 2], color = 'red')
+
+    m = path2
+    n = path_pred
+    for i in range(len(m)):
+        ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+init+1)), size=10, zorder=1, color='k')
+        ax.text(n[i, 0], n[i, 1], n[i, 2], '%s' % (str(i+init+1)), size=10, zorder=1, color='k')
+    ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black',marker = "*", s = 150)
     fig.suptitle('Path of BO to target', fontsize=16)
     plt.show()

@@ -28,6 +28,19 @@ def euclidean_distance(one, two):
     return np.sqrt(np.sum((one - two)**2))
 
 
+def approx(suggestion,real_set):
+    dist = []
+    for i in range(len(real_set)):
+        d = euclidean_distance(suggestion, real_set[i])
+        dist = np.append(dist,d)
+    m = np.amin(dist)
+    for j in range(len(dist)):
+        if dist[j]==m:
+            t = real_set[j]
+            break
+    return t
+
+
 def approximate_point(suggestion, real_set, visited, threshold):
     """
     Handles approximating the given suggestion from the acquisition function to a discrete value within the
@@ -189,25 +202,24 @@ class BayesianOptimization(Observable):
             warnings.simplefilter("ignore")
             self._gp.fit(self._space.params, self._space.target)
 
-        # Finding argmax of the acquisition function.
-#         print("endgp")
-        suggestion = acq_max(
-            ac=utility_function.utility,
-            gp=self._gp,
-            y_max=self._space.target.max(),
-            bounds=self._space.bounds,
-            n_warmup=10000,
-            random_state=self._random_state
-        )
-#         suggestion = acq_max_dis(
+
+#         suggestion = acq_max(
 #             ac=utility_function.utility,
 #             gp=self._gp,
 #             y_max=self._space.target.max(),
 #             bounds=self._space.bounds,
-#             labels=labels,
-#             n_warmup=1000,
+#             n_warmup=10000,
 #             random_state=self._random_state
 #         )
+        suggestion = acq_max_dis(
+            ac=utility_function.utility,
+            gp=self._gp,
+            y_max=self._space.target.max(),
+            bounds=self._space.bounds,
+            labels=labels,
+            n_warmup=1000,
+            random_state=self._random_state
+        )
 
 
         # Add suggestion to predicted list
@@ -216,6 +228,7 @@ class BayesianOptimization(Observable):
 
         # Approximate the suggestion to the nearest real point
         suggestion = approximate_point(suggestion, self._real_set, self.visited, self.mm_thres)
+#         suggestion = approx(suggestion, self._real_set)
 
         # If no suggestion within mm threshold, return None
         if suggestion is None:

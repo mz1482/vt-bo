@@ -100,38 +100,17 @@ def acq_max_dis(ac, gp, y_max, bounds,labels, random_state, n_warmup=10000, n_it
     -------
     :return: x_max, The arg max of the acquisition function.
     """
-
-    # Warm up with random points
-    x_tries = random_state.uniform(bounds[:, 0], bounds[:, 1],
-                                   size=(n_warmup, bounds.shape[0]))
-    ys = ac(x_tries, gp=gp, y_max=y_max)
-    x_max = x_tries[ys.argmax()]
-    max_acq = ys.max()
-
-    # Explore the parameter space more throughly
-#     x_seeds = random_state.uniform(bounds[:, 0], bounds[:, 1],
-#                                    size=(n_iter, bounds.shape[0]))
+    gp_value = []
     x_seeds = labels
-    for x_try in x_seeds:
-        # Find the minimum of minus the acquisition function
-        res = minimize(lambda x: -ac(x.reshape(1, -1), gp=gp, y_max=y_max),
-                       x_try.reshape(1, -1),
-                       bounds=bounds,
-                       method="L-BFGS-B")
-
-        # See if success
-        if not res.success:
-            continue
-
-        # Store it if better than previous minimum(maximum).
-        if max_acq is None or -res.fun[0] >= max_acq:
-            x_max = res.x
-            max_acq = -res.fun[0]
-
-    # Clip output to make sure it lies within the bounds. Due to floating
-    # point technicalities this is not always the case.
+    for x_try in x_seeds:        
+        g = ac(x_try.reshape(1, -1), gp=gp, y_max=y_max)
+        gp_value = np.append(gp_value,g)
+    m = np.amax(gp_value)
+    for j in range(len(gp_value)):
+        if gp_value[j]==m:
+            x_max = x_seeds[j]
+            break
     return np.clip(x_max, bounds[:, 0], bounds[:, 1])
-
 
 class UtilityFunction(object):
     """

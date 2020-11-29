@@ -203,23 +203,23 @@ class BayesianOptimization(Observable):
             self._gp.fit(self._space.params, self._space.target)
 
 
-#         suggestion = acq_max(
-#             ac=utility_function.utility,
-#             gp=self._gp,
-#             y_max=self._space.target.max(),
-#             bounds=self._space.bounds,
-#             n_warmup=10000,
-#             random_state=self._random_state
-#         )
-        suggestion = acq_max_dis(
+        suggestion = acq_max(
             ac=utility_function.utility,
             gp=self._gp,
             y_max=self._space.target.max(),
             bounds=self._space.bounds,
-            labels=labels,
-            n_warmup=1000,
+            n_warmup=10000,
             random_state=self._random_state
         )
+#         suggestion = acq_max_dis(
+#             ac=utility_function.utility,
+#             gp=self._gp,
+#             y_max=self._space.target.max(),
+#             bounds=self._space.bounds,
+#             labels=labels,
+#             n_warmup=1000,
+#             random_state=self._random_state
+#         )
 
 
         # Add suggestion to predicted list
@@ -254,6 +254,7 @@ class BayesianOptimization(Observable):
                 point = self._space.random_sample()
                 self.visited.append(point)
                 self._queue.add(point)
+
 
     def _prime_subscriptions(self):
         if not any([len(subs) for subs in self._events.values()]):
@@ -334,12 +335,16 @@ class BayesianOptimization(Observable):
 
         self.set_gp_params(**gp_params)
 
+
         util = UtilityFunction(kind=acq,
                        kappa=kappa,
                        xi=xi,
                        kappa_decay=kappa_decay,
                        kappa_decay_delay=kappa_decay_delay)
         iteration = 0
+        print("hello")
+        x_probe = next(self._queue)
+        print(len(self._space))
         while not self._queue.empty or iteration < n_iter:
             try:
                 x_probe = next(self._queue)

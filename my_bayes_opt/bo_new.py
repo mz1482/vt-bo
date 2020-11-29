@@ -430,26 +430,7 @@ class mybo(object):
                                }
             self.res['all']['values'].append(self.Y[-1])
             self.res['all']['params'].append(dict(zip(self.keys, self.X[-1])))
-#             yy2 = self.gp.predict(xx,return_std=False, return_cov=False)
-#             k2_inv = self.gp.fit2(self.X[ur], self.Y[ur])
-#             f2 = self.Y
-#             b=np.sum(np.dot(k2_inv,f2))
-#             c = a-b
-#             dif = np.append(dif,c)
-#             plt.plot(xx,yy1,c = 'red',label = "previous")
-#             plt.plot(xx,yy2,c='green',label = 'current')
-#             plt.legend(loc='lower left')
-#             plt.show()
-#             yy1 = yy2
-#             a = b
-#             trainx= self.X
-
-            
-            
-
-
-        return self.gp
-    
+        return self.gp, self.X
     
     def gpfit2(self,
                  init_points=5,

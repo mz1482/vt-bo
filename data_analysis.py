@@ -46,16 +46,6 @@ def get_closest_point(label):
 
     return closest, closest_idx
 
-def black_box(x, y, z):
-    """
-    Represents a black box function to maximize for CC of two ECGs given an XYZ coordinate
-    :param x:
-    :param y: coordinates of the prediction
-    :param z:
-    :return: CC of that point and the target
-    """
-    sample_ecg = ecgs[get_index(np.array([x, y, z]),labels)]
-    return abs(correlation_coef(target_ecg, sample_ecg))
 
 def get_index(label,labels):
     """

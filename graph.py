@@ -231,10 +231,10 @@ def graph_dist_over_axis(target):
         plt.pause(.001)
 #     fig.show()
 
-def gp_plot(gp):
-    X = np.arange(-35, 95, 4)
-    Y = np.arange(-119, 3, 4)
-    Z = np.arange(-91, 8, 4)
+def gp_plot(gp,labels):
+    X = np.arange(np.amin(labels[:,0]), np.amax(labels[:,0]), 4)
+    Y = np.arange(np.amin(labels[:,1]), np.amax(labels[:,1]), 4)
+    Z = np.arange(np.amin(labels[:,2]), np.amax(labels[:,2]), 4)
     gpm = []
     loc = np.empty((0, 3))
     for i in range(len(X)):
@@ -259,12 +259,33 @@ def gp_plot2(gp,labels):
     color_gradient = np.array(color_gradient).flatten()
     fig = plt.figure(55)
     ax = fig.gca(projection='3d')
-    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, cmap = plt.cm.rainbow)
+    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, s=5,cmap = plt.cm.rainbow)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     fig.colorbar(img)
     fig.suptitle('GP plot', fontsize=16)
     plt.show()
-        
+    
+def init_gp_plot(init,gp,labels,visited):
+    path = np.array(visited)
+    path1 = path[0:init,:]
+    color_gradient = []
+    for i in range(len(labels)):
+        cc = gp.predict(labels[i].reshape(1,-1),return_std=False)
+        color_gradient.append(cc)
+    color_gradient = np.array(color_gradient).flatten()
+    sns.set(style = "darkgrid")
+    fig = plt.figure(55)
+    ax = fig.gca(projection='3d')
+    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, s=5,cmap = plt.cm.rainbow)
+    ax.plot(path1[:, 0], path1[:, 1], path1[:, 2], color = 'black',label = 'initial random Path')
+    ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
+
+    m = path1
+    for i in range(len(m)):
+        ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+1)), size=10, zorder=1, color='black')
+    fig.suptitle('initial GP plot', fontsize=16)
+    plt.show()
+
     
 def cube(target,ecgs,labels):
     c = corners(labels)
@@ -317,9 +338,7 @@ def plot_exploration(init,target,target_ecg,labels,ecgs,visited):
     
 def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
     """
-    Handles plotting the predictions of the network over time
-    :param visited:
-    :return:
+    show the points and path of both predicted and visited values
     """
     color_gradient = []
     for ecg, coord in zip(ecgs, labels):
@@ -338,14 +357,15 @@ def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
     ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75,s = 5, c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(xs=path2[:, 0], ys=path2[:, 1], zs=path2[:, 2], zdir='z',s=20, color='blue')
     ax.scatter(xs=path_pred[:, 0], ys=path_pred[:, 1], zs=path_pred[:, 2], zdir='z',s=20, color='green')
-    ax.plot(path2[:, 0], path2[:, 1], path2[:, 2], color = 'black')
-    ax.plot(path_pred[:, 0], path_pred[:, 1], path_pred[:, 2], color = 'red')
+    ax.plot(path2[:, 0], path2[:, 1], path2[:, 2], color = 'black',label = 'Visited Path')
+    ax.plot(path_pred[:, 0], path_pred[:, 1], path_pred[:, 2], color = 'red',label='Predicted Path')
+    ax.legend()
 
     m = path2
     n = path_pred
     for i in range(len(m)):
-        ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+init+1)), size=10, zorder=1, color='k')
-        ax.text(n[i, 0], n[i, 1], n[i, 2], '%s' % (str(i+init+1)), size=10, zorder=1, color='k')
+        ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+init+1)), size=10, zorder=1, color='black')
+        ax.text(n[i, 0], n[i, 1], n[i, 2], '%s' % (str(i+init+1)), size=10, zorder=1, color='red')
     ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black',marker = "*", s = 150)
     fig.suptitle('Path of BO to target', fontsize=16)
     plt.show()

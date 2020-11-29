@@ -361,35 +361,71 @@ class mybo(object):
                  kappa=2.576,
                  xi=0.0,
                  **gp_params):
-
-        print("This is GP")
-
-        self.util = my_utility_function(kind=acq,kappa=kappa,xi=xi)
-        dim=self.dim
-        dim_limit = self.bounds
+        """
+        Main optimization method.
+ 
+        Parameters
+        ----------
+        :param init_points:
+            Number of randomly chosen points to sample the
+            target function before fitting the gp.
+ 
+        :param n_iter:
+            Total number of times the process is to repeated. Note that
+            currently this methods does not have stopping criteria (due to a
+            number of reasons), therefore the total number of points to be
+            sampled must be specified.
+ 
+        :param acq:
+            Acquisition function to be used, defaults to Expected Improvement.
+ 
+        :param gp_params:
+            Parameters to be passed to the Scikit-learn Gaussian Process object
+ 
+        Returns
+        -------
+        :return: Nothing
+        """
+        # Reset timer
+        self.plog.reset_timer()
+ 
+        # Set acquisition function
+        self.util = my_utility_function(kind=acq, kappa=kappa, xi=xi)
+ 
+        # Initialize x, y and find current y_max
         if not self.initialized:
+            if self.verbose:
+                self.plog.print_header()
             self.init(init_points)
+ 
         y_max = self.Y.max()
-        #Set parameters if any was passed
+ 
+        # Set parameters if any was passed
         self.gp.set_params(**gp_params)
  
         # Find unique rows of X to avoid GP from breaking
         ur = unique_rows(self.X)
         self.gp.fit(self.X[ur], self.Y[ur])
-                # Finding argmax of the acquisition function.
+ 
+        # Finding argmax of the acquisition function.
         x_max = acq_max(ac=self.util.utility,
                         gp=self.gp,
                         y_max=y_max,
                         bounds=self.bounds)
-#         dif = []
-#         xx = np.linspace(-5,5,1000)
-#         xx=np.reshape((xx),(1000,1))
-#         yy1 = self.gp.predict(xx,return_std=False, return_cov=False)
-#         k1_inv = self.gp.fit2(self.X[ur], self.Y[ur])
-#         f1 = self.Y
-#         a=np.sum(np.dot(k1_inv,f1))
+        x_max = approx(x_max,self.real_set)
+#         x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)
+#         print(x_max)
+ 
+        # Print new header
+        if self.verbose:
+            self.plog.print_header(initialization=False)
+        # Iterative process of searching for the maximum. At each round the
+        # most recent x and y values probed are added to the X and Y arrays
+        # used to train the Gaussian Process. Next the maximum known value
+        # of the target function is found and passed to the acq_max function.
+        # The arg_max of the acquisition function is found and this will be
+        # the next probed value of the target function in the next round.
         for i in range(n_iter):
-            print(i)
             # Test if x_max is repeated, if it is, draw another one at random
             # If it is repeated, print a warning
             pwarning = False
@@ -398,30 +434,35 @@ class mybo(object):
                 x_max = np.random.uniform(self.bounds[:, 0],
                                           self.bounds[:, 1],
                                           size=self.bounds.shape[0])
+                x_max = approx(x_max,self.real_set)
+#                 x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)
  
                 pwarning = True
-    # Append most recently generated values to X and Y arrays
+ 
+            # Append most recently generated values to X and Y arrays
             self.X = np.vstack((self.X, x_max.reshape((1, -1))))
             self.Y = np.append(self.Y, self.f(**dict(zip(self.keys, x_max))))
  
             # Updating the GP.
             ur = unique_rows(self.X)
             self.gp.fit(self.X[ur], self.Y[ur])
-#             if i == 0:
-#                 yy1 = self.gp.predict(xx,return_std=False, return_cov=False)
-#                 k1_inv = self.gp.fit2(self.X[ur], self.Y[ur])
-#                 f1 = self.Y
  
             # Update maximum value to search for next probe point.
             if self.Y[-1] > y_max:
                 y_max = self.Y[-1]
- 
             # Maximize acquisition function to find next probing point
             x_max = acq_max(ac=self.util.utility,
                             gp=self.gp,
                             y_max=y_max,
                             bounds=self.bounds)
-        # Keep track of total number of iterations
+            x_max = approx(x_max,self.real_set)
+#             x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)
+ 
+            # Print stuff
+            if self.verbose:
+                self.plog.print_step(self.X[-1], self.Y[-1], warning=pwarning)
+ 
+            # Keep track of total number of iterations
             self.i += 1
  
             self.res['max'] = {'max_val': self.Y.max(),
@@ -430,6 +471,10 @@ class mybo(object):
                                }
             self.res['all']['values'].append(self.Y[-1])
             self.res['all']['params'].append(dict(zip(self.keys, self.X[-1])))
+ 
+        # Print a final report if verbose active.
+        if self.verbose:
+            self.plog.print_summary()
         return self.gp, self.X
     
     def gpfit2(self,

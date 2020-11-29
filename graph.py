@@ -5,10 +5,14 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import gridspec
 from matplotlib import cm
 import seaborn as sns
+from matplotlib.animation import FuncAnimation
 
 
 
-
+def update(i, fig, ax):
+    ax.view_init(elev=20., azim=i)
+    return fig, ax
+ 
 def correlation_coef(one, two):
     """ Returns the CC between two ECG signals"""
     return np.corrcoef(one, two)[0, 1]
@@ -114,7 +118,7 @@ def graph_cc_distribution(target,ecgs,labels):
         cc = correlation_coef(target, ecg)
         color_gradient.append(cc)
     sns.set(style = "darkgrid")
-    fig = plt.figure(33)
+    fig = plt.figure(figsize=(10,15))
     ax = fig.gca(projection='3d')
     img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2],s = 5, c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
@@ -122,6 +126,8 @@ def graph_cc_distribution(target,ecgs,labels):
     fig.colorbar(img)
     fig.suptitle('Actual CC plot', fontsize=16)
     plt.show()
+#     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+#     anim.save('plots/actual_cc.gif', dpi=80, writer='imagemagick', fps=10)
     
     
 def narrow(target,target_ecg,ecgs,labels,limit):
@@ -274,17 +280,20 @@ def init_gp_plot(init,gp,labels,visited):
         color_gradient.append(cc)
     color_gradient = np.array(color_gradient).flatten()
     sns.set(style = "darkgrid")
-    fig = plt.figure(55)
+    fig = plt.figure(figsize=(10,15))
     ax = fig.gca(projection='3d')
     img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, s=5,cmap = plt.cm.rainbow)
-    ax.plot(path1[:, 0], path1[:, 1], path1[:, 2], color = 'black',label = 'initial random Path')
+    ax.scatter(xs=path1[:, 0], ys=path1[:, 1], zs=path1[:, 2], zdir='z',s=40, color='black')
+#     ax.plot(path1[:, 0], path1[:, 1], path1[:, 2], color = 'black',label = 'initial random Path')
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
-
     m = path1
-    for i in range(len(m)):
-        ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+1)), size=10, zorder=1, color='black')
+#     for i in range(len(m)):
+#         ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+1)), size=10, zorder=1, color='black')
     fig.suptitle('initial GP plot', fontsize=16)
     plt.show()
+#     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+#     anim.save('plots/initial_gp.gif', dpi=80, writer='imagemagick', fps=10)
+    
 
     
 def cube(target,ecgs,labels):

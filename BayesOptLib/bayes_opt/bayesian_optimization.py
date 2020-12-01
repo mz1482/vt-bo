@@ -342,9 +342,6 @@ class BayesianOptimization(Observable):
                        kappa_decay=kappa_decay,
                        kappa_decay_delay=kappa_decay_delay)
         iteration = 0
-        print("hello")
-        x_probe = next(self._queue)
-        print(len(self._space))
         while not self._queue.empty or iteration < n_iter:
             try:
                 x_probe = next(self._queue)

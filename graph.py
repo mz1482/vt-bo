@@ -7,8 +7,6 @@ from matplotlib import cm
 import seaborn as sns
 from matplotlib.animation import FuncAnimation
 
-
-
 def update(i, fig, ax):
     ax.view_init(elev=20., azim=i)
     return fig, ax
@@ -118,16 +116,16 @@ def graph_cc_distribution(target,ecgs,labels):
         cc = correlation_coef(target, ecg)
         color_gradient.append(cc)
     sns.set(style = "darkgrid")
-    fig = plt.figure(figsize=(10,15))
+    fig = plt.figure(figsize=(10,7))
     ax = fig.gca(projection='3d')
     img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2],s = 5, c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     fig.colorbar(img)
     fig.suptitle('Actual CC plot', fontsize=16)
-    plt.show()
-#     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-#     anim.save('plots/actual_cc.gif', dpi=80, writer='imagemagick', fps=10)
+#     plt.show()
+    anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+    anim.save('plots/actual_cc_al2.gif', dpi=80, writer='imagemagick', fps=10)
     
     
 def narrow(target,target_ecg,ecgs,labels,limit):
@@ -211,31 +209,6 @@ def corrplot3axes(tidx,labels,ecgs,dis_limit):
     plt.show
     return x,y,z,nn_cc
 
-def graph_dist_over_axis(target):
-    ccs = []
-
-    # Loop through all points to get CC with that point
-    for ecg, coord in zip(ecgs, labels):
-        if np.array_equal(target, ecg):
-            true = coord
-            ccs.append(1.0)
-            continue
-
-        ccs.append(correlation_coef(target, ecg))
-
-    # Plot out the points according to color
-    fig = plt.figure(6)
-    ax = fig.gca(projection='3d')
-
-    print(labels[:, 0].shape, np.asarray(ccs).shape)
-    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:,2])
-    plt.xlabel('x')
-    plt.ylabel('y')
-    for angle in range(0, 360):
-        ax.view_init(30, angle)
-        plt.draw()
-        plt.pause(.001)
-#     fig.show()
 
 def gp_plot(gp,labels):
     X = np.arange(np.amin(labels[:,0]), np.amax(labels[:,0]), 4)
@@ -257,21 +230,24 @@ def gp_plot(gp,labels):
     fig.suptitle('CC distribution on GP', fontsize=16)
     plt.show()
     
-def gp_plot2(gp,labels):
+def gp_plot2(gp,labels,target):
     color_gradient = []
     for i in range(len(labels)):
         cc = gp.predict(labels[i].reshape(1,-1),return_std=False)
         color_gradient.append(cc)
     color_gradient = np.array(color_gradient).flatten()
-    fig = plt.figure(55)
+    fig = plt.figure(figsize=(10,7))
     ax = fig.gca(projection='3d')
     img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, s=5,cmap = plt.cm.rainbow)
+    ax.scatter(target[0], target[1], target[2], color='black', marker = "X", s = 100)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     fig.colorbar(img)
     fig.suptitle('GP plot', fontsize=16)
-    plt.show()
+#     plt.show()
+    anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+    anim.save('plots/GP_AL2.gif', dpi=80, writer='imagemagick', fps=10)
     
-def init_gp_plot(init,gp,labels,visited):
+def init_gp_plot(init,gp,labels,visited,target):
     path = np.array(visited)
     path1 = path[0:init,:]
     color_gradient = []
@@ -280,19 +256,21 @@ def init_gp_plot(init,gp,labels,visited):
         color_gradient.append(cc)
     color_gradient = np.array(color_gradient).flatten()
     sns.set(style = "darkgrid")
-    fig = plt.figure(figsize=(10,15))
+    fig = plt.figure(figsize=(10,7))
     ax = fig.gca(projection='3d')
     img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, s=5,cmap = plt.cm.rainbow)
-    ax.scatter(xs=path1[:, 0], ys=path1[:, 1], zs=path1[:, 2], zdir='z',s=40, color='black')
+    ax.scatter(xs=path1[:, 0], ys=path1[:, 1], zs=path1[:, 2], zdir='z',s=40, color='blue')
+    ax.scatter(target[0], target[1], target[2], color='black', marker = "X", s = 100)
 #     ax.plot(path1[:, 0], path1[:, 1], path1[:, 2], color = 'black',label = 'initial random Path')
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
+    fig.colorbar(img)
     m = path1
 #     for i in range(len(m)):
 #         ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+1)), size=10, zorder=1, color='black')
     fig.suptitle('initial GP plot', fontsize=16)
     plt.show()
 #     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-#     anim.save('plots/initial_gp.gif', dpi=80, writer='imagemagick', fps=10)
+#     anim.save('plots/initial_gp3.gif', dpi=80, writer='imagemagick', fps=10)
     
 
     
@@ -361,15 +339,15 @@ def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
     
     rest = np.delete(labels, np.where(np.isin(labels, path2)), axis=0)
     color_gradient = np.delete(color_gradient, np.where(np.isin(labels, path2)), axis=0)
-    fig = plt.figure(8)
+    fig = plt.figure(figsize=(10,7))
     ax = fig.gca(projection='3d')
-    ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75,s = 5, c=color_gradient, cmap = plt.cm.rainbow)
+    img = ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75,s = 5, c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(xs=path2[:, 0], ys=path2[:, 1], zs=path2[:, 2], zdir='z',s=20, color='blue')
     ax.scatter(xs=path_pred[:, 0], ys=path_pred[:, 1], zs=path_pred[:, 2], zdir='z',s=20, color='green')
     ax.plot(path2[:, 0], path2[:, 1], path2[:, 2], color = 'black',label = 'Visited Path')
     ax.plot(path_pred[:, 0], path_pred[:, 1], path_pred[:, 2], color = 'red',label='Predicted Path')
     ax.legend()
-
+    fig.colorbar(img)
     m = path2
     n = path_pred
     for i in range(len(m)):
@@ -377,4 +355,6 @@ def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
         ax.text(n[i, 0], n[i, 1], n[i, 2], '%s' % (str(i+init+1)), size=10, zorder=1, color='red')
     ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black',marker = "*", s = 150)
     fig.suptitle('Path of BO to target', fontsize=16)
-    plt.show()
+#     plt.show()
+    anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+    anim.save('plots/AL_path2.gif', dpi=80, writer='imagemagick', fps=10)

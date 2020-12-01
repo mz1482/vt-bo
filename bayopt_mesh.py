@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from data_analysis import get_heart_bounds, correlation_coef, graph_3d, get_index
-from graph import narrow,corrplot3axes,trend,nearest,plot_exploration, graph_dist_over_axis, graph_cc_distribution, cube, gp_plot, gp_plot2,predicted_visited
+from graph import narrow,corrplot3axes,trend,nearest,plot_exploration, graph_cc_distribution, cube, gp_plot, gp_plot2,predicted_visited
 from BayesOptLib.bayes_opt.bayesian_optimization import BayesianOptimization
 from RandomSampler import RandomSampler
 import matplotlib
@@ -30,8 +30,8 @@ if __name__ == '__main__':
     tidx = np.random.randint(0, labels.shape[0])    # Pick out a sample to use as a target
     target, target_ecg = labels[tidx], ecgs[tidx]
     print("Target: ", target)
-    init = 10 #initial random sample
-    steps = 0 # total AL step
+    init = 5 #initial random sample
+    steps = 15 # total AL step
     af = "ucb" 
         
 #     table=nearest(tidx,labels,ecgs,15)
@@ -41,9 +41,9 @@ if __name__ == '__main__':
 #         x.add_row(row)
 #     print(x)    
     optimizer = BayesianOptimization(f=black_box,pbounds=bounds,random_state=None, real_set=labels)
-    gp,X = optimizer.gpfit(init_points=init, n_iter=steps,  acq=af, kappa = 2.5,kappa_decay=0.75,kappa_decay_delay=2)
+    gp,X = optimizer.gpfit(init_points=init, n_iter=steps,  acq=af, kappa = 2,kappa_decay=0.75,kappa_decay_delay=2)
     graph_cc_distribution(target_ecg,ecgs,labels)
-    gp_plot2(gp,labels)
+    gp_plot2(gp,labels,target)
 #     trend(target,optimizer.visited,optimizer.predicted)
 
 #     plot_exploration(init,target,target_ecg,labels,ecgs,optimizer.visited)

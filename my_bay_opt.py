@@ -4,7 +4,7 @@ import bo_new
 import pandas as pd
 import numpy as np
 from data_analysis import get_heart_bounds, correlation_coef, graph_3d, get_index
-from graph import narrow,corrplot3axes,trend,nearest,plot_exploration, graph_dist_over_axis, graph_cc_distribution, cube, gp_plot, gp_plot2,predicted_visited, init_gp_plot
+from graph import narrow,corrplot3axes,trend,nearest,plot_exploration, graph_cc_distribution, cube, gp_plot, gp_plot2,predicted_visited, init_gp_plot
 from BayesOptLib.bayes_opt.bayesian_optimization import BayesianOptimization
 from RandomSampler import RandomSampler
 import matplotlib
@@ -27,6 +27,8 @@ def black_box(x, y, z):
 
 ecgs = pd.read_csv("new_simu-data/Heart1/Heart1_SimuData_4000.csv", header=None).to_numpy()
 labels = pd.read_csv("new_simu-data/Heart1/Coord1_4000.csv", header=None).to_numpy() / 1000
+init = 100
+steps = 0
 # Get bounds of the heart mesh
 bounds = get_heart_bounds(labels)
 # Pick out a sample to use as a target
@@ -34,6 +36,8 @@ tidx = np.random.randint(0, labels.shape[0])
 target, target_ecg = labels[tidx], ecgs[tidx]
 # optimizer = optimize_point(labels,bounds)  
 optimizer = bo_new.mybo(f=black_box,pbounds=bounds, real_set=labels)
-gp,X = optimizer.gpfit(init_points=20, n_iter=0,  acq="ucb", kappa = 1)
+gp,X,rs,predicted = optimizer.gpfit(init_points=init, n_iter=steps,  acq="ucb", kappa = 1)
+# print(optimizer.predicted)
 graph_cc_distribution(target_ecg,ecgs,labels)
-init_gp_plot(20,gp,labels,X)
+init_gp_plot(init,gp,labels,X,target)
+# predicted_visited(init,target,target_ecg,labels,ecgs,X,predicted)

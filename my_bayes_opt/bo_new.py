@@ -84,8 +84,7 @@ class mybo(object):
         self.initialized = False
  
         # Initialization lists --- stores starting points before process begins
-        self.visited = []
-        self.predicted = []
+        self.visited = None
         self.init_points = []
         self.x_init = []
         self.y_init = []
@@ -361,31 +360,6 @@ class mybo(object):
                  kappa=2.576,
                  xi=0.0,
                  **gp_params):
-        """
-        Main optimization method.
- 
-        Parameters
-        ----------
-        :param init_points:
-            Number of randomly chosen points to sample the
-            target function before fitting the gp.
- 
-        :param n_iter:
-            Total number of times the process is to repeated. Note that
-            currently this methods does not have stopping criteria (due to a
-            number of reasons), therefore the total number of points to be
-            sampled must be specified.
- 
-        :param acq:
-            Acquisition function to be used, defaults to Expected Improvement.
- 
-        :param gp_params:
-            Parameters to be passed to the Scikit-learn Gaussian Process object
- 
-        Returns
-        -------
-        :return: Nothing
-        """
         # Reset timer
         self.plog.reset_timer()
  
@@ -399,7 +373,7 @@ class mybo(object):
             self.init(init_points)
  
         y_max = self.Y.max()
- 
+        predicted = np.empty((0, 3))
         # Set parameters if any was passed
         self.gp.set_params(**gp_params)
  
@@ -412,6 +386,8 @@ class mybo(object):
                         gp=self.gp,
                         y_max=y_max,
                         bounds=self.bounds)
+        x_max2 = x_max
+        predicted = np.append(predicted,x_max2.reshape(1,3),axis=0)
         x_max = approx(x_max,self.real_set)
 #         x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)
 #         print(x_max)
@@ -419,15 +395,8 @@ class mybo(object):
         # Print new header
         if self.verbose:
             self.plog.print_header(initialization=False)
-        # Iterative process of searching for the maximum. At each round the
-        # most recent x and y values probed are added to the X and Y arrays
-        # used to train the Gaussian Process. Next the maximum known value
-        # of the target function is found and passed to the acq_max function.
-        # The arg_max of the acquisition function is found and this will be
-        # the next probed value of the target function in the next round.
         for i in range(n_iter):
-            # Test if x_max is repeated, if it is, draw another one at random
-            # If it is repeated, print a warning
+            predicted = np.append(predicted,x_max2.reshape(1,3),axis=0)
             pwarning = False
             if np.any((self.X - x_max).sum(axis=1) == 0):
  
@@ -435,7 +404,6 @@ class mybo(object):
                                           self.bounds[:, 1],
                                           size=self.bounds.shape[0])
                 x_max = approx(x_max,self.real_set)
-#                 x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)
  
                 pwarning = True
  
@@ -455,6 +423,7 @@ class mybo(object):
                             gp=self.gp,
                             y_max=y_max,
                             bounds=self.bounds)
+            x_max2 = x_max
             x_max = approx(x_max,self.real_set)
 #             x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)
  
@@ -475,404 +444,4 @@ class mybo(object):
         # Print a final report if verbose active.
         if self.verbose:
             self.plog.print_summary()
-        return self.gp, self.X
-    
-    def gpfit2(self,
-                 init_points=5,
-                 n_iter=25,
-                 acq='ei',
-                 kappa=2.576,
-                 xi=0.0,
-                 **gp_params):
-
-        print("This is testing for new AF")
-
-        self.util = my_utility_function(kind=acq,kappa=kappa,xi=xi)
-        dim=self.dim
-        dim_limit = self.bounds
-        if not self.initialized:
-            self.init(init_points)
-        y_max = self.Y.max()
-        #Set parameters if any was passed
-        self.gp.set_params(**gp_params)
- 
-        # Find unique rows of X to avoid GP from breaking
-        ur = unique_rows(self.X)
-        self.gp.fit(self.X[ur], self.Y[ur])
-                # Finding argmax of the acquisition function.
-#         x_max = acq_max(ac=self.util.utility,
-#                         gp=self.gp,
-#                         y_max=y_max,
-#                         bounds=self.bounds)
-#         print(x_max)
-#         xx = np.linspace(-5,5,1000)
-#         xx=np.reshape((xx),(1000,1))
-#         yy1 = self.gp.predict(xx,return_std=False, return_cov=False)
-        k1_inv = self.gp.fit2(self.X[ur], self.Y[ur])
-        a=np.sum(np.dot(k1_inv,self.Y))
-
-        for i in range(n_iter):
-            print(i)
-            # Test if x_max is repeated, if it is, draw another one at random
-            # If it is repeated, print a warning
-#             pwarning = False
-#             if np.any((self.X - x_max).sum(axis=1) == 0):
- 
-#                 x_max = np.random.uniform(self.bounds[:, 0],
-#                                           self.bounds[:, 1],
-#                                           size=self.bounds.shape[0])
- 
-#                 pwarning = True
-    # Append most recently generated values to X and Y arrays
-            temp_y = []
-            temp_x = []
-            d=np.empty([100,3])
-#             rs = np.random.multivariate_normal(np.zeros(self.dim), 1.0/10*np.diag(np.ones(self.dim)),100)
-            rs = np.random.uniform(low=-4, high=4, size=(100,self.dim))
-#             rs_new = rs
-            for p in range(100):
-                temp_x =  np.vstack((self.X, rs[p,:].reshape((1, -1))))
-                y2 = self.gp.predict(rs[p,:].reshape((1, -1)),return_std=False, return_cov=False)
-                temp_y = np.append(self.Y, y2)
-                # Updating the GP.
-#                 temp_gp = self.gp.fit(temp_x, temp_y)
-                k2_inv = self.gp.fit2(temp_x, temp_y)
-                b=np.sum(np.dot(k2_inv,temp_y))
-                d[p,:] = rs[p,:],b,np.abs(a-b)
-#             sam = np.amax(d[], axis=1) 
-        
-            selected = d[d[:,2]==np.amax(d[:,2])]
-            x_max = np.array([selected[0,0]])
-            a = np.array([selected[0,1]])
-    
-            self.X = np.vstack((self.X, x_max.reshape((1, -1))))
-            self.Y = np.append(self.Y, self.f(**dict(zip(self.keys, x_max))))
- 
-            # Updating the GP.
-            ur = unique_rows(self.X)
-            self.gp.fit(self.X[ur], self.Y[ur])
-#             yy2 = self.gp.predict(xx,return_std=False, return_cov=False)
-#             plt.plot(xx,yy1,c = 'red',label = "previous")
-#             plt.plot(xx,yy2,c='green',label = 'current')
-#             plt.legend(loc='lower left')
-#             plt.show()
-#             yy1 = yy2
-            # Update maximum value to search for next probe point.
-#             if self.Y[-1] > y_max:
-#                 y_max = self.Y[-1]
- 
-#             # Maximize acquisition function to find next probing point
-#             x_max = acq_max(ac=self.util.utility,
-#                             gp=self.gp,
-#                             y_max=y_max,
-#                             bounds=self.bounds)
-#         # Keep track of total number of iterations
-            self.i += 1
- 
-            self.res['max'] = {'max_val': self.Y.max(),
-                               'max_params': dict(zip(self.keys,
-                                                      self.X[self.Y.argmax()]))
-                               }
-            self.res['all']['values'].append(self.Y[-1])
-            self.res['all']['params'].append(dict(zip(self.keys, self.X[-1])))
-        return self.gp
-    
-    
-    
-    
-    def gpfit3(self,
-                 init_points=5,
-                 n_iter=25,
-                 acq='ei',
-                 kappa=2.576,
-                 xi=0.0,
-                 **gp_params):
-
-        print("This is GP")
-
-        self.util = my_utility_function(kind=acq,kappa=kappa,xi=xi)
-        dim=self.dim
-        dim_limit = self.bounds
-        if not self.initialized:
-            self.init(init_points)
-        y_max = self.Y.max()
-        #Set parameters if any was passed
-        self.gp.set_params(**gp_params)
- 
-        # Find unique rows of X to avoid GP from breaking
-        ur = unique_rows(self.X)
-        self.gp.fit(self.X[ur], self.Y[ur])
-                # Finding argmax of the acquisition function.
-        x_max = acq_max(ac=self.util.utility,
-                        gp=self.gp,
-                        y_max=y_max,
-                        bounds=self.bounds)
-        dif = []
-        xx = np.linspace(-5,5,1000)
-        xx=np.reshape((xx),(1000,1))
-        yy1 = self.gp.predict(xx,return_std=False, return_cov=False)
-        k1_inv = self.gp.fit2(self.X[ur], self.Y[ur])
-        f1 = self.Y
-        a=np.sum(np.dot(k1_inv,f1))
-        for i in range(n_iter):
-            print(i)
-            # Test if x_max is repeated, if it is, draw another one at random
-            # If it is repeated, print a warning
-            pwarning = False
-            if np.any((self.X - x_max).sum(axis=1) == 0):
- 
-                x_max = np.random.uniform(self.bounds[:, 0],
-                                          self.bounds[:, 1],
-                                          size=self.bounds.shape[0])
- 
-                pwarning = True
-    # Append most recently generated values to X and Y arrays
-            self.X = np.vstack((self.X, x_max.reshape((1, -1))))
-            self.Y = np.append(self.Y, self.f(**dict(zip(self.keys, x_max))))
- 
-            # Updating the GP.
-            ur = unique_rows(self.X)
-            self.gp.fit(self.X[ur], self.Y[ur])
-#             if i == 0:
-#                 yy1 = self.gp.predict(xx,return_std=False, return_cov=False)
-#                 k1_inv = self.gp.fit2(self.X[ur], self.Y[ur])
-#                 f1 = self.Y
- 
-            # Update maximum value to search for next probe point.
-            if self.Y[-1] > y_max:
-                y_max = self.Y[-1]
- 
-            # Maximize acquisition function to find next probing point
-            x_max = acq_max(ac=self.util.utility,
-                            gp=self.gp,
-                            y_max=y_max,
-                            bounds=self.bounds)
-        # Keep track of total number of iterations
-            self.i += 1
- 
-            self.res['max'] = {'max_val': self.Y.max(),
-                               'max_params': dict(zip(self.keys,
-                                                      self.X[self.Y.argmax()]))
-                               }
-            self.res['all']['values'].append(self.Y[-1])
-            self.res['all']['params'].append(dict(zip(self.keys, self.X[-1])))
-            yy2 = self.gp.predict(xx,return_std=False, return_cov=False)
-            k2_inv = self.gp.fit2(self.X[ur], self.Y[ur])
-            f2 = self.Y
-            b=np.sum(np.dot(k2_inv,f2))
-            c = a-b
-            dif = np.append(dif,c)
-            plt.plot(xx,yy1,c = 'red',label = "previous")
-            plt.plot(xx,yy2,c='green',label = 'current')
-            plt.legend(loc='lower left')
-            plt.show()
-            yy1 = yy2
-            a = b
-            trainx= self.X
-            
-
-
-        return xx,k1_inv,k2_inv,f1,f2,yy1,yy2,trainx,np.abs(dif),self.gp
-    
-    def gp_shape(self,
-                 init_points=5,
-                 n_iter=25,
-                 acq='ei',
-                 kappa=2.576,
-                 xi=0.0,
-                 mh_size = 1000,
-                 **gp_params):
-
-        print("This is GP based shape")
-
-        self.util = my_utility_function(kind=acq,kappa=kappa,xi=xi)
-        dim=self.dim
-        dim_limit = self.bounds
-        if not self.initialized:
-            self.init(init_points)
-        y_max = self.Y.max()
-        #Set parameters if any was passed
-        self.gp.set_params(**gp_params)
- 
-        # Find unique rows of X to avoid GP from breaking
-        ur = unique_rows(self.X)
-        self.gp.fit(self.X[ur], self.Y[ur])
-                # Finding argmax of the acquisition function.
-        x_max = acq_max(ac=self.util.utility,
-                        gp=self.gp,
-                        y_max=y_max,
-                        bounds=self.bounds)
-        for i in range(n_iter):
-            # Test if x_max is repeated, if it is, draw another one at random
-            # If it is repeated, print a warning
-            pwarning = False
-            if np.any((self.X - x_max).sum(axis=1) == 0):
- 
-                x_max = np.random.uniform(self.bounds[:, 0],
-                                          self.bounds[:, 1],
-                                          size=self.bounds.shape[0])
- 
-                pwarning = True
-    # Append most recently generated values to X and Y arrays
-            self.X = np.vstack((self.X, x_max.reshape((1, -1))))
-            self.Y = np.append(self.Y, self.f(**dict(zip(self.keys, x_max))))
- 
-            # Updating the GP.
-            ur = unique_rows(self.X)
-            self.gp.fit(self.X[ur], self.Y[ur])
- 
-            # Update maximum value to search for next probe point.
-            if self.Y[-1] > y_max:
-                y_max = self.Y[-1]
- 
-            # Maximize acquisition function to find next probing point
-            x_max = acq_max(ac=self.util.utility,
-                            gp=self.gp,
-                            y_max=y_max,
-                            bounds=self.bounds)
-        # Keep track of total number of iterations
-            self.i += 1
- 
-            self.res['max'] = {'max_val': self.Y.max(),
-                               'max_params': dict(zip(self.keys,
-                                                      self.X[self.Y.argmax()]))
-                               }
-            self.res['all']['values'].append(self.Y[-1])
-            self.res['all']['params'].append(dict(zip(self.keys, self.X[-1])))
-
-
-            if i==n_iter - 1:
-#                 chain = []
-                mcmc_chain = 2
-                z_sample = np.empty((0,dim))
-                for c in range(mcmc_chain):
-                    ux=np.zeros(dim)
-                    for k in range(dim):
-                        ux[k]= np.random.uniform(dim_limit[k,0],dim_limit[k,1])
-                    zfix = ux
-                    for j in range(mh_size):
-                        x_0=np.reshape(zfix,(1,-1))
-                        param = self.gp.predict(x_0, return_std= True)
-                        m=param[0].ravel() # mean of gp
-                        v=param[1].ravel() # sigma of gp
-                        z_star = zfix + np.random.normal(loc = 0, scale = .5,size=dim)
-                        z_star2 = np.reshape(z_star,(1,-1))
-                        inside = 0
-                        for pp in range(dim):
-                            if (dim_limit[pp,0]<z_star[pp]<dim_limit[pp,1]):
-                                inside = inside + 1
-                        if inside == dim:
-                            param2 = self.gp.predict(z_star2, return_std= True)
-                            m2=param2[0].ravel() # mean of gp
-                            v2=param2[1].ravel() # sigma of gp
-                            rho = min(1, np.exp(m2)/np.exp(m))
-                            r=np.random.rand()
-                            if r < rho:
-                                zfix = z_star
-                                z_sample = np.append(z_sample,z_star2,axis=0)
-#                 print("iteration no is ",i+1)
-#                 print("acceptance rate", ar)
-        return z_sample
-
-    def exp_gp_shape(self,
-                 init_points=5,
-                 n_iter=25,
-                 acq='ei',
-                 kappa=2.576,
-                 xi=0.0,
-                 mh_size = 1000,
-                 **gp_params):
-
-        print("This is exp(GP) based shape")
-
-        self.util = my_utility_function(kind=acq,kappa=kappa,xi=xi)
-        dim=self.dim
-        dim_limit = self.bounds
-        if not self.initialized:
-            self.init(init_points)
-        y_max = self.Y.max()
-        #Set parameters if any was passed
-        self.gp.set_params(**gp_params)
- 
-        # Find unique rows of X to avoid GP from breaking
-        ur = unique_rows(self.X)
-        self.gp.fit(self.X[ur], self.Y[ur])
-                # Finding argmax of the acquisition function.
-        x_max = acq_max(ac=self.util.utility,
-                        gp=self.gp,
-                        y_max=y_max,
-                        bounds=self.bounds)
-        for i in range(n_iter):
-            # Test if x_max is repeated, if it is, draw another one at random
-            # If it is repeated, print a warning
-            pwarning = False
-            if np.any((self.X - x_max).sum(axis=1) == 0):
- 
-                x_max = np.random.uniform(self.bounds[:, 0],
-                                          self.bounds[:, 1],
-                                          size=self.bounds.shape[0])
- 
-                pwarning = True
-    # Append most recently generated values to X and Y arrays
-            self.X = np.vstack((self.X, x_max.reshape((1, -1))))
-            self.Y = np.append(self.Y, self.f(**dict(zip(self.keys, x_max))))
- 
-            # Updating the GP.
-            ur = unique_rows(self.X)
-            self.gp.fit(self.X[ur], self.Y[ur])
- 
-            # Update maximum value to search for next probe point.
-            if self.Y[-1] > y_max:
-                y_max = self.Y[-1]
- 
-            # Maximize acquisition function to find next probing point
-            x_max = acq_max(ac=self.util.utility,
-                            gp=self.gp,
-                            y_max=y_max,
-                            bounds=self.bounds)
-        # Keep track of total number of iterations
-            self.i += 1
- 
-            self.res['max'] = {'max_val': self.Y.max(),
-                               'max_params': dict(zip(self.keys,
-                                                      self.X[self.Y.argmax()]))
-                               }
-            self.res['all']['values'].append(self.Y[-1])
-            self.res['all']['params'].append(dict(zip(self.keys, self.X[-1])))
-
-
-            if i==n_iter - 1:
-#                 chain = []
-                mcmc_chain = 2
-                z_sample = np.empty((0,dim))
-                for c in range(mcmc_chain):
-                    ux=np.zeros(dim)
-                    for k in range(dim):
-                        ux[k]= np.random.uniform(dim_limit[k,0],dim_limit[k,1])
-                    zfix = ux
-                    for j in range(mh_size):
-                        x_0=np.reshape(zfix,(1,-1))
-                        param = self.gp.predict(x_0, return_std= True)
-                        m=param[0].ravel() # mean of gp
-                        v=param[1].ravel() # sigma of gp
-                        log_mean_0 = np.exp(m+v**2/2)
-                        z_star = zfix + np.random.normal(loc = 0, scale = .5,size=dim)
-                        z_star2 = np.reshape(z_star,(1,-1))
-                        inside = 0
-                        for pp in range(dim):
-                            if (dim_limit[pp,0]<z_star[pp]<dim_limit[pp,1]):
-                                inside = inside + 1
-                        if inside == dim:
-                            param2 = self.gp.predict(z_star2, return_std= True)
-                            m2=param2[0].ravel() # mean of gp
-                            v2=param2[1].ravel() # sigma of gp
-                            log_mean_2 = np.exp(m2+v2**2/2)
-                            rho = min(1, log_mean_2/log_mean_0)
-                            r=np.random.rand()
-                            if r < rho:
-                                zfix = z_star
-                                z_sample = np.append(z_sample,z_star2,axis=0)
-#                 ar=len(accepted_f)/(j+1)
-#                 print("iteration no is ",i+1)
-#                 print("acceptance rate", ar)
-        return z_sample
+        return self.gp, self.X, self.X[0:init_points,:],predicted

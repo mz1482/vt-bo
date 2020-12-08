@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from data_analysis import get_heart_bounds, correlation_coef, graph_3d, get_index
-from graph import narrow,corrplot3axes,trend,nearest,plot_exploration, graph_cc_distribution, cube, gp_plot, gp_plot2,predicted_visited
+from graph import *
 from BayesOptLib.bayes_opt.bayesian_optimization import BayesianOptimization
 from RandomSampler import RandomSampler
 import matplotlib
@@ -41,12 +41,13 @@ if __name__ == '__main__':
 #         x.add_row(row)
 #     print(x)    
     optimizer = BayesianOptimization(f=black_box,pbounds=bounds,random_state=None, real_set=labels)
-    gp,X = optimizer.gpfit(init_points=init, n_iter=steps,  acq=af, kappa = 2,kappa_decay=0.75,kappa_decay_delay=2)
-    graph_cc_distribution(target_ecg,ecgs,labels)
-    gp_plot2(gp,labels,target)
-#     trend(target,optimizer.visited,optimizer.predicted)
+    gp,X = optimizer.gpfit(init_points=init, n_iter=steps,  acq=af, kappa = 1,kappa_decay=0.75,kappa_decay_delay=2)
+#     graph_cc_distribution(target_ecg,ecgs,labels)
+#     gp_plot2(gp,labels,target)
+    
 
 #     plot_exploration(init,target,target_ecg,labels,ecgs,optimizer.visited)
 #     print(optimizer.predicted)
-    predicted_visited(init,target,target_ecg,labels,ecgs,optimizer.visited,optimizer.predicted)
+#     predicted_visited(init,target,target_ecg,labels,ecgs,optimizer.visited,optimizer.predicted)
+#     trend(target,optimizer.visited,optimizer.predicted)
 

@@ -1,11 +1,9 @@
 """
 @file: simu-combined-test.py
 @author: Ryan Missel
-
 Combined script that handles running all of the different patient-specific models on the same random initialization
 within the segments predicted by the population model. Runs it over every unique pacing site as the target site for a
 number of repeated trials.
-
 Prints out averaged metrics at the end for each model, e.g. number of successful runs, average error distance per time
 step, etc.
 """
@@ -15,6 +13,7 @@ from models.bomodel import BOModel
 from models.confi import *
 from models.utilfuncs import *
 import pandas as pd
+from tqdm import tqdm
 import random
 
 # Ignoring warnings
@@ -98,7 +97,6 @@ def main():
     """
     The loop throughout this function is kind of cumbersome, but needed to make it easy to test all models on the
     same given dataset/initialization for all patients
-
     It loops through each patient a number of times for different initializations and tests each model's runtime on it,
     gathering run statistics and aggregating them into the arrays at the top here for printing at the end
     """
@@ -106,14 +104,14 @@ def main():
     total_cases = 0
     alle, all_points = [], []
 
-    bo_euclids = [[] for _ in range(NUM_STEPS + 1)]                     # Random init BO arrays
-    bo_successes, bo_avg_sites, bo_drop = [], [], []
+    # bo_euclids = [[] for _ in range(NUM_STEPS + NUM_POINTS_START)]                     # Random init BO arrays
+    # bo_successes, bo_avg_sites, bo_drop = [], [], []
 
-    cc_euclids = [[] for _ in range(NUM_STEPS + 10)]                    # Random init CC arrays
+    cc_euclids = [[] for _ in range(NUM_STEPS + 21)]                    # Random init CC arrays
     cc_successes, cc_avg_sites = [], []
     cc_drop = []
 
-    rs_euclids = [[] for _ in range(NUM_STEPS + 1)]                     # Random init RS arrays
+    rs_euclids = [[] for _ in range(NUM_STEPS + 21)]                     # Random init RS arrays
     rs_successes, rr_avg_sites = [], []
     rr_drop = []
 
@@ -123,18 +121,26 @@ def main():
     # Reading in the ECGs and labels
     aucs = pd.read_csv("simu-data/Heart3_AUCS.csv", header=None).to_numpy()
     ecgs = pd.read_csv("simu-data/Heart3_SimuData.csv", header=None).to_numpy()
-    labels = pd.read_csv("simu-data/UVC3_Corresp2pacingSite.csv", header=None).to_numpy()[:, :3]
+    labels = pd.read_csv("simu-data/Heart3_XYZsub.csv", header=None).to_numpy()[:, :3] / 1000
 
     # Initializing the models to test for patient
-    bo_model = BOModel(leads=LEADS, steps=NUM_STEPS, svr_c=SVR_C, cc=CC_THRES, cc_succ=CC_SUCC, mm=mm_thres, samp_raw=ecgs, samp_coords=labels)
-    cc_model = CCModel(leads=LEADS, steps=NUM_STEPS, svr_c=SVR_C, cc=CC_THRES, cc_succ=CC_SUCC, mm=mm_thres, samp_raw=ecgs, samp_coords=labels)
+#     bo_model = BOModel(leads=LEADS, steps=NUM_STEPS, svr_c=SVR_C, cc=CC_THRES, cc_succ=CC_SUCC, mm=mm_thres, samp_raw=ecgs, samp_coords=labels)
+    cc_model = CCModel(leads=LEADS, steps=NUM_STEPS, svr_c=SVR_C, cc=CC_THRES, cc_succ=CC_SUCC,
+                       mm=mm_thres, samp_raw=ecgs, samp_coords=labels)
     rs_model = RSModel(steps=NUM_STEPS, svr_c=SVR_C, samp_raw=ecgs, samp_coords=labels, cc_succ=CC_SUCC)
 
     # Loop through each patient, performing a number of trials
-    for target, target_coord, target_raw, idx in zip(aucs, labels, ecgs, range(len(labels))):
+    for target, target_coord, target_raw, idx in tqdm(zip(aucs, labels, ecgs, range(len(labels)))):
+        if idx > 5:
+            break
 
         # Drop the target from the training set
-        x, y, raw = np.delete(aucs, idx, axis=0), np.delete(labels, idx, axis=0), np.delete(ecgs, idx, axis=0)
+        if idx == 0:
+            x, y, raw = aucs[idx + 1:, :], labels[idx + 1:], ecgs[idx + 1:, :]
+        else:
+            x = np.concatenate((aucs[:idx, :], aucs[idx + 1:, :]))
+            y = np.concatenate((labels[:idx], labels[idx + 1:]))
+            raw = np.concatenate((ecgs[:idx], ecgs[idx + 1:]))
 
         # Looping through every point to test, n number of times for variance in initialization
         for _ in range(NUM_TRIALS):
@@ -149,9 +155,9 @@ def main():
                 alle.append(all_euclid)
 
             # BO Model
-            bo_successes, bo_avg_sites, bo_euclids = model_run(bo_model, raw, y, random_x, random_y, target,
-                                                               target_coord, target_raw, bo_successes,
-                                                               bo_avg_sites, bo_euclids)
+#             bo_successes, bo_avg_sites, bo_euclids = model_run(bo_model, raw, y, random_x, random_y, target,
+#                                                                target_coord, target_raw, bo_successes,
+#                                                                bo_avg_sites, bo_euclids)
 
             # CCRI Model
             cc_successes, cc_avg_sites, cc_euclids = model_run(cc_model, x, y, random_x, random_y,
@@ -163,6 +169,8 @@ def main():
                                                                      target, target_coord, target_raw,
                                                                      rs_successes, rr_avg_sites, rs_euclids)
 
+        total_cases += 1
+
     # Print the file names used
     print("File set used: ", DATA_PATH)
 
@@ -170,7 +178,7 @@ def main():
     print("--- Average Success errors ---")
     print("Total number of cases: %d"                            %  total_cases)
     print("All Points: %.2f +- %.2f for %d cases" % (np.mean(alle), np.std(alle), len(alle)))
-    print("Bayes: %.2f +- %.2f for %d cases"      % (np.mean(bo_successes), np.std(bo_successes), len(bo_successes)))
+    # print("Bayes: %.2f +- %.2f for %d cases"      % (np.mean(bo_successes), np.std(bo_successes), len(bo_successes)))
     print("CC RI: %.2f +- %.2f for %d cases"      % (np.mean(cc_successes), np.std(cc_successes), len(cc_successes)))
     print("RS RI: %.2f +- %.2f for %d cases"      % (np.mean(rs_successes), np.std(rs_successes), len(rs_successes)))
 
@@ -178,14 +186,14 @@ def main():
 
     print("--- Average Num of Sites ---")
     print("All  : %.2f +- %.2f" % (np.mean(all_points), np.std(all_points)))
-    print("Bayes: %.2f +- %.2f" % (np.mean(bo_avg_sites), np.std(bo_avg_sites)))
+    # print("Bayes: %.2f +- %.2f" % (np.mean(bo_avg_sites), np.std(bo_avg_sites)))
     print("CCRI: %.2f +- %.2f"  % (np.mean(cc_avg_sites), np.std(cc_avg_sites)))
     print("RSRI: %.2f +- %.2f"  % (np.mean(rr_avg_sites), np.std(rr_avg_sites)))
 
     print(" ")
 
     print("--- Average Drop ---")
-    print("Bayes: %.2f +- %.2f" % (np.mean(bo_drop), np.std(bo_drop)))
+    # print("Bayes: %.2f +- %.2f" % (np.mean(bo_drop), np.std(bo_drop)))
     print("CCRI: %.2f +- %.2f"  % (np.mean(cc_drop), np.std(cc_drop)))
     print("RSRI: %.2f +- %.2f"  % (np.mean(rr_drop), np.std(rr_drop)))
 
@@ -198,8 +206,8 @@ def main():
     print(" ")
 
     print("--- Per Step Averages ---")
-    print_model_stats([bo_euclids, cc_euclids, rs_euclids], ["Bayes", "CC RI", "RS RI"])
-
+    # print_model_stats([bo_euclids, cc_euclids, rs_euclids], ["Bayes", "CC RI", "RS RI"])
+    print_model_stats([cc_euclids, rs_euclids], ["CC RI", "RS RI"])
 
 if __name__ == '__main__':
     main()

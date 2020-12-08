@@ -1,7 +1,6 @@
 """
 @file bomodel.py
 @author Ryan Missel
-
 Holds the model for the Bayesian Optimization algorithm
 """
 from models.utilfuncs import *
@@ -14,8 +13,35 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+def plot_exploration(visited, labels, target):
+    """
+    Handles plotting the predictions of the network over time
+    :param visited:
+    :return:
+    """
+    path = np.array(visited)
+    nums = [i for i in range(len(visited))]
+
+    # Plot final for viewing
+    fig = plt.figure(0)
+    ax = fig.gca(projection='3d')
+    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], zdir='z', alpha=0.75, color='gray')
+
+    ax.plot(xs=path[:, 0], ys=path[:, 1], zs=path[:, 2], zdir='z', color='blue')
+    ax.scatter(xs=path[:, 0], ys=path[:, 1], zs=path[:, 2], zdir='z', color='blue')
+
+    for i, txt in enumerate(nums):
+        ax.text(path[i, 0], path[i, 1], path[i, 2], '%s' % (str(txt)), size=10, zorder=1, color='k')
+
+    ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black')
+
+
+
+    plt.show()
+
+
 class BOModel:
-    def __init__(self, leads=None, svr_c=5, steps=20, mm=15, cc=.75, cc_succ=.9, samp_coords=None, samp_raw=None):
+    def __init__(self, leads=None, svr_c=5, steps=40, mm=15, cc=.75, cc_succ=.9, samp_coords=None, samp_raw=None):
         # Which leads to use
         self.leads = leads if leads is not None else [i for i in range(12)]
 
@@ -68,11 +94,11 @@ class BOModel:
         optimizer = BayesianOptimization(
             f=self.black_box,
             pbounds=self.bounds(labels),
-            random_state=None, real_set=labels
+            random_state=None, real_set=labels, verbose=False
         )
 
         # Maximize over x number of points
-        success = optimizer.maximize(init_points=4, given_set=given_set, n_iter=16, kappa=1.5)
+        success = optimizer.maximize(init_points=4, given_set=given_set, n_iter=self.num_steps, kappa=1.5)
         return optimizer, success
 
     def bounds(self, labels):
@@ -109,11 +135,7 @@ class BOModel:
         optimizer, success = self.optimize_point(y, labels)
         num_sites = len(optimizer.visited)
 
-        print(optimizer.visited)
-        print(optimizer.predicted)
-
         for site in optimizer.visited:
             cc_euclids.append(self.euclidean_distance(site, target_coord))
 
-        print(cc_euclids)
         return cc_euclids, cc_preds, cc_sites, success, num_sites

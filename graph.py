@@ -123,9 +123,36 @@ def graph_cc_distribution(target,ecgs,labels):
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     fig.colorbar(img)
     fig.suptitle('Actual CC plot', fontsize=16)
-#     plt.show()
+    plt.show()
+#     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+#     anim.save('plots/actual_cc_al2.gif', dpi=80, writer='imagemagick', fps=10)
+
+
+
+def cc_model_graph(target,target_ecg,ecgs,labels,sites):
+    color_gradient = []
+    for ecg, coord in zip(ecgs, labels):
+        cc = correlation_coef(target_ecg, ecg)
+        color_gradient.append(cc)
+    path = np.asarray(sites)
+    
+    rest = np.delete(labels, np.where(np.isin(labels, path)), axis=0)
+    color_gradient = np.delete(color_gradient, np.where(np.isin(labels, path)), axis=0)
+    fig = plt.figure(figsize=(10,7))
+    ax = fig.gca(projection='3d')
+    img = ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75,s = 5, c=color_gradient, cmap = plt.cm.rainbow)
+    ax.scatter(xs=path[:, 0], ys=path[:, 1], zs=path[:, 2], zdir='z',s=50, color='black')
+    ax.plot(path[:, 0], path[:, 1], path[:, 2], color = 'black',label = 'Visited Path')
+    ax.legend()
+    fig.colorbar(img)
+    m = path
+    for i in range(len(m)):
+        ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+1)), size=10, zorder=1, color='k')
+    ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black',marker = "*", s = 150)
+    fig.suptitle('Path of CC model', fontsize=16)
+    plt.show()
     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-    anim.save('plots/actual_cc_al2.gif', dpi=80, writer='imagemagick', fps=10)
+    anim.save('plots/ryan.gif', dpi=80, writer='imagemagick', fps=10)
     
     
 def narrow(target,target_ecg,ecgs,labels,limit):
@@ -244,8 +271,8 @@ def gp_plot2(gp,labels,target):
     fig.colorbar(img)
     fig.suptitle('GP plot', fontsize=16)
 #     plt.show()
-    anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-    anim.save('plots/GP_AL2.gif', dpi=80, writer='imagemagick', fps=10)
+#     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+#     anim.save('plots/GP_ALnew2.gif', dpi=80, writer='imagemagick', fps=10)
     
 def init_gp_plot(init,gp,labels,visited,target):
     path = np.array(visited)
@@ -356,5 +383,5 @@ def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
     ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black',marker = "*", s = 150)
     fig.suptitle('Path of BO to target', fontsize=16)
 #     plt.show()
-    anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-    anim.save('plots/AL_path2.gif', dpi=80, writer='imagemagick', fps=10)
+#     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+#     anim.save('plots/AL_pathnew2.gif', dpi=80, writer='imagemagick', fps=10)

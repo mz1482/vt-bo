@@ -1,5 +1,4 @@
 """
-
 """
 import numpy as np
 from sklearn.svm import SVR
@@ -41,12 +40,8 @@ def check_corr_coef(site, target, samp_coords, samp_data):
             target_idx = idx
         idx += 1
 
-    # Stacking and dropping zeros to longest one
-    stack = np.vstack((samp_data[site_idx], samp_data[target_idx]))
-    stack = stack[:, ~np.all(stack == 0, axis=0)]
-
     # Returning CC between them
-    return np.corrcoef(stack[0], stack[1])[0, 1]
+    return np.corrcoef(samp_data[target_idx], samp_data[site_idx])[0, 1]
 
 
 def get_next_closest_site(data, coords, thres, target, labels):
@@ -268,4 +263,3 @@ def check_cc_success(pred_raw, target_raw):
             nums += 1
 
     return True if nums == 12 else False
-

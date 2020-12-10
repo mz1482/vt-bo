@@ -124,7 +124,7 @@ class Observable(object):
 
 
 class BayesianOptimization(Observable):
-    def __init__(self, f, pbounds, random_state=None, verbose=2, real_set=None, cc_thres=0.99, mm_thres=100):
+    def __init__(self, f, pbounds, random_state=None, verbose=2, real_set=None, cc_thres=0.97, mm_thres=100):
         """"""
         self._random_state = ensure_rng(random_state)
 

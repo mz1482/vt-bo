@@ -104,8 +104,6 @@ def graph_cc_distribution(target,ecgs,labels):
     Function that handles color coating the 3d mesh to see the distribution of CC over distance from a given target
     coordinate. Useful to see the general function in 3D
     """
-    # Lists to hold the points with the color coating
-    true, blue, green, yellow, red = None, [], [], [], []
     color_gradient = []
     # Loop through all points to get CC with that point
     for ecg, coord in zip(ecgs, labels):
@@ -125,16 +123,17 @@ def graph_cc_distribution(target,ecgs,labels):
     fig.suptitle('Actual CC plot', fontsize=16)
     plt.show()
 #     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-#     anim.save('plots/actual_cc_al2.gif', dpi=80, writer='imagemagick', fps=10)
+#     anim.save('plots/actual_cc'+str(labels[1])+'.gif', dpi=80, writer='imagemagick', fps=10)
 
 
 
-def cc_model_graph(target,target_ecg,ecgs,labels,sites):
+def cc_model_graph(target,target_ecg,ecgs,labels,visited,predicted):
     color_gradient = []
     for ecg, coord in zip(ecgs, labels):
         cc = correlation_coef(target_ecg, ecg)
         color_gradient.append(cc)
-    path = np.asarray(sites)
+    path = np.asarray(visited)
+    path_pred = np.asarray(predicted)
     
     rest = np.delete(labels, np.where(np.isin(labels, path)), axis=0)
     color_gradient = np.delete(color_gradient, np.where(np.isin(labels, path)), axis=0)
@@ -142,17 +141,33 @@ def cc_model_graph(target,target_ecg,ecgs,labels,sites):
     ax = fig.gca(projection='3d')
     img = ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75,s = 5, c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(xs=path[:, 0], ys=path[:, 1], zs=path[:, 2], zdir='z',s=50, color='black')
+    ax.scatter(xs=path_pred[:, 0], ys=path_pred[:, 1], zs=path_pred[:, 2], zdir='z',s=50, color='red')
     ax.plot(path[:, 0], path[:, 1], path[:, 2], color = 'black',label = 'Visited Path')
+    ax.plot(path_pred[:, 0], path_pred[:, 1], path_pred[:, 2], color = 'red',label = 'Predicted Path')
     ax.legend()
     fig.colorbar(img)
     m = path
+    n = path_pred
     for i in range(len(m)):
         ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+1)), size=10, zorder=1, color='k')
+        ax.text(n[i, 0], n[i, 1], n[i, 2], '%s' % (str(i+1)), size=10, zorder=1, color='k')
     ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black',marker = "*", s = 150)
     fig.suptitle('Path of CC model', fontsize=16)
     plt.show()
-    anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-    anim.save('plots/ryan.gif', dpi=80, writer='imagemagick', fps=10)
+#     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+#     anim.save('plots/ryan2.gif', dpi=80, writer='imagemagick', fps=10)
+    
+def narrow_cc(target,labels,ecgs,aucs,limit):
+    n_labels = np.empty((0, 3))
+    n_ecgs = np.empty((0, 7212))
+    n_aucs = np.empty((0, 12))
+    for i in range(len(labels)):
+        d = np.sqrt(np.sum((target - labels[i])**2))
+        if d < limit:
+            n_labels = np.append(n_labels,labels[i].reshape(1,3),axis=0)
+            n_ecgs = np.append(n_ecgs,ecgs[i].reshape(1,7212),axis=0)
+            n_aucs = np.append(n_aucs,aucs[i].reshape(1,12),axis=0)
+    return n_aucs,n_labels,n_ecgs
     
     
 def narrow(target,target_ecg,ecgs,labels,limit):
@@ -237,7 +252,7 @@ def corrplot3axes(tidx,labels,ecgs,dis_limit):
     return x,y,z,nn_cc
 
 
-def gp_plot(gp,labels):
+def gp_plot2(gp,labels):
     X = np.arange(np.amin(labels[:,0]), np.amax(labels[:,0]), 4)
     Y = np.arange(np.amin(labels[:,1]), np.amax(labels[:,1]), 4)
     Z = np.arange(np.amin(labels[:,2]), np.amax(labels[:,2]), 4)
@@ -257,7 +272,7 @@ def gp_plot(gp,labels):
     fig.suptitle('CC distribution on GP', fontsize=16)
     plt.show()
     
-def gp_plot2(gp,labels,target):
+def gp_plot(gp,labels,target):
     color_gradient = []
     for i in range(len(labels)):
         cc = gp.predict(labels[i].reshape(1,-1),return_std=False)
@@ -270,9 +285,9 @@ def gp_plot2(gp,labels,target):
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     fig.colorbar(img)
     fig.suptitle('GP plot', fontsize=16)
-#     plt.show()
+    plt.show()
 #     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-#     anim.save('plots/GP_ALnew2.gif', dpi=80, writer='imagemagick', fps=10)
+#     anim.save('plots/GP'+str(labels[1])+'.gif', dpi=80, writer='imagemagick', fps=10)
     
 def init_gp_plot(init,gp,labels,visited,target):
     path = np.array(visited)
@@ -350,6 +365,18 @@ def plot_exploration(init,target,target_ecg,labels,ecgs,visited):
     fig.suptitle('Path of BO to target', fontsize=16)
     plt.show()
     
+    
+def heart(target,labels):
+    fig = plt.figure(figsize=(8,7))
+    ax = fig.gca(projection='3d')
+    ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2],s = 5, color = 'gray')
+    ax.scatter(target[0], target[1], target[2], color='black', marker = "X", s = 200)
+    fig.suptitle('A heart with a target location', fontsize=16)
+    plt.show()
+#     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+#     anim.save('plots/heart.gif', dpi=80, writer='imagemagick', fps=10)
+    
+    
 def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
     """
     show the points and path of both predicted and visited values
@@ -382,6 +409,6 @@ def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
         ax.text(n[i, 0], n[i, 1], n[i, 2], '%s' % (str(i+init+1)), size=10, zorder=1, color='red')
     ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black',marker = "*", s = 150)
     fig.suptitle('Path of BO to target', fontsize=16)
-#     plt.show()
+    plt.show()
 #     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-#     anim.save('plots/AL_pathnew2.gif', dpi=80, writer='imagemagick', fps=10)
+#     anim.save('plots/AL_path'+str(labels[1])+'.gif', dpi=80, writer='imagemagick', fps=10)

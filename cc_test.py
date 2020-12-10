@@ -52,12 +52,8 @@ def model_run(model, x, y, train, labels, target, target_coord, target_raw, succ
     return successes, avg_sites, all_euclids, sites
 cc_model = CCModel(leads=LEADS, steps=10, svr_c=SVR_C, cc=CC_THRES, cc_succ=CC_SUCC,
                    mm=mm_thres, samp_raw=ecgs, samp_coords=labels)
-rs_model = RSModel(steps=NUM_STEPS, svr_c=SVR_C, samp_raw=ecgs, samp_coords=labels, cc_succ=CC_SUCC)
 
-# for target, target_coord, target_raw, idx in tqdm(zip(aucs, labels, ecgs, range(len(labels)))):
-#     if idx > 0:
-#         break
-idx = np.random.randint(0,1999,1)[0]
+idx = np.random.randint(0,3999,1)[0]
 target = aucs[idx]
 target_coord = labels[idx]
 target_raw = ecgs[idx]
@@ -70,10 +66,13 @@ else:
     y = np.concatenate((labels[:idx], labels[idx + 1:]))
     raw = np.concatenate((ecgs[:idx], ecgs[idx + 1:]))
 
-
+x,y,raw = narrow_cc(target_coord,y,raw,x,30)
+    
+    
 random_x, random_y = get_random_dataset(x, y)
 
 cc_euclids, cc_preds, cc_sites, success, num_sites = cc_model.run(x, y, random_x, random_y,
                                                          target, target_coord, target_raw)
 print(success)
-cc_model_graph(target_coord,target_raw,ecgs,labels,cc_sites)
+print(cc_sites)
+cc_model_graph(target_coord,target_raw,ecgs,labels,cc_sites,cc_preds)

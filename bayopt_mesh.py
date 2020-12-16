@@ -37,6 +37,7 @@ if __name__ == '__main__':
    
     optimizer = BayesianOptimization(f=black_box,pbounds=bounds,random_state=None, real_set=labels)
     gp,X = optimizer.gpfit(init_points=init, n_iter=steps,  acq=af, kappa = 1,kappa_decay=0.75,kappa_decay_delay=2)
+#     print(len(optimizer.predicted))
 #     heart(target,labels)
     graph_cc_distribution(target_ecg,ecgs,labels)
     gp_plot(gp,labels,target)

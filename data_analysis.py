@@ -135,6 +135,13 @@ def posterior(optimizer, x_obs, y_obs, grid):
     return mu, sigma
 
 
+def lv_rv(uvc,v):
+    idx=[]
+    for i in range(len(uvc)):
+        if (uvc[i,3]==v):
+            idx.append(i)
+    return idx
+
 def graph_3d(x, y, z, xname, yname, zname):
     # Building and plotting the point mesh cloud
     fig = plt.figure(0)

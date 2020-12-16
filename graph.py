@@ -6,6 +6,7 @@ from matplotlib import gridspec
 from matplotlib import cm
 import seaborn as sns
 from matplotlib.animation import FuncAnimation
+import plotly.graph_objects as go
 
 def update(i, fig, ax):
     ax.view_init(elev=20., azim=i)
@@ -116,14 +117,14 @@ def graph_cc_distribution(target,ecgs,labels):
     sns.set(style = "darkgrid")
     fig = plt.figure(figsize=(10,7))
     ax = fig.gca(projection='3d')
-    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2],s = 5, c=color_gradient, cmap = plt.cm.rainbow)
-    ax.scatter(true[0], true[1], true[2], color='black', marker = "X", s = 100)
+    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2],s = 60, c=color_gradient, cmap = plt.cm.rainbow)
+    ax.scatter(true[0], true[1], true[2], color='black', marker = "*", s = 200)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     fig.colorbar(img)
     fig.suptitle('Actual CC plot', fontsize=16)
-    plt.show()
-#     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-#     anim.save('plots/actual_cc'+str(labels[1])+'.gif', dpi=80, writer='imagemagick', fps=10)
+#     plt.show()
+    anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+    anim.save('plots/uvc_cc'+str(labels[1])+'.gif', dpi=80, writer='imagemagick', fps=10)
 
 
 
@@ -376,6 +377,22 @@ def heart(target,labels):
 #     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
 #     anim.save('plots/heart.gif', dpi=80, writer='imagemagick', fps=10)
     
+
+def plotly_plot(target,labels,ecgs):
+    color_gradient = []
+    # Loop through all points to get CC with that point
+    for ecg, coord in zip(ecgs, labels):
+        if np.array_equal(target, ecg):
+            true = coord
+            color_gradient.append(1)
+            continue
+        cc = correlation_coef(target, ecg)
+        color_gradient.append(cc)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter3d(x=labels[:,0],y=labels[:,1],z=labels[:,2],mode='markers',marker=dict(size=5,color=color_gradient,colorbar=dict(
+                title=""),colorscale='rainbow',opacity=0)))
+    fig.add_trace(go.Scatter3d(x=[true[0]],y=[true[1]],z=[true[2]],mode = 'markers',marker = dict(size=10,color='Black',symbol= 'x')))
+    fig.show()
     
 def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
     """
@@ -391,11 +408,11 @@ def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
     path1 = path[0:init,:]
     path2 = path[init:len(path),:]
     
-    rest = np.delete(labels, np.where(np.isin(labels, path2)), axis=0)
-    color_gradient = np.delete(color_gradient, np.where(np.isin(labels, path2)), axis=0)
+#     rest = np.delete(labels, np.where(np.isin(labels, path2)), axis=0)
+#     color_gradient = np.delete(color_gradient, np.where(np.isin(labels, path2)), axis=0)
     fig = plt.figure(figsize=(10,7))
     ax = fig.gca(projection='3d')
-    img = ax.scatter(xs=rest[:, 0], ys=rest[:, 1], zs=rest[:, 2], zdir='z', alpha=0.75,s = 5, c=color_gradient, cmap = plt.cm.rainbow)
+    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], zdir='z', alpha=0.75,s = 5, c=color_gradient, cmap = plt.cm.rainbow)
     ax.scatter(xs=path2[:, 0], ys=path2[:, 1], zs=path2[:, 2], zdir='z',s=20, color='blue')
     ax.scatter(xs=path_pred[:, 0], ys=path_pred[:, 1], zs=path_pred[:, 2], zdir='z',s=20, color='green')
     ax.plot(path2[:, 0], path2[:, 1], path2[:, 2], color = 'black',label = 'Visited Path')

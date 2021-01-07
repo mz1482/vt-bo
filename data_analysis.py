@@ -11,9 +11,11 @@ from BayesOptLib.bayes_opt.bayesian_optimization import BayesianOptimization
 
 # ecgs = pd.read_csv("simu-data/Heart3_SimuData.csv", header=None).to_numpy()
 # labels = pd.read_csv("simu-data/UVC3_Corresp2pacingSite.csv", header=None).to_numpy()[:, :3]
+data_path = "/home/mz1482/project/vt-bayesian-opt-bopt_debug/data/simu_data_4000/"
 
-ecgs = pd.read_csv("new_simu-data/Heart1/Heart1_SimuData_4000.csv", header=None).to_numpy()
-labels = pd.read_csv("new_simu-data/Heart1/Coord1_4000.csv", header=None).to_numpy() / 1000
+# ecgs = pd.read_csv(data_path+"Heart1/Heart1_SimuData_4000.csv", header=None).to_numpy()
+labels = pd.read_csv(data_path+"Heart1/Coord1_4000.csv", header=None).to_numpy() / 1000
+# uvc = pd.read_csv(data_path+"UVC/Coord1_UVC_4000.csv", header=None).to_numpy()
 
 def euclidean_distance(one, two):
     """ Computes the euclidean distance between two coordinates """
@@ -151,6 +153,107 @@ def graph_3d(x, y, z, xname, yname, zname):
     ax.set_ylabel(yname)
     ax.set_zlabel(zname)
     plt.show()
+
+def uvc_xyz(optimizer,uvc_lv,labels_lv,target_xyz):
+    '''
+    convert the visited uvc to visited xyz
+    '''
+    visited = np.asarray(optimizer.visited)
+    path_xyz=np.empty((0, 3))
+    for i in range(len(visited)):
+        t=get_index(visited[i],uvc_lv)
+        b=labels_lv[t]
+        path_xyz = np.append(path_xyz,b.reshape(1,-1),axis=0)
+    return path_xyz
+
+def result_metric(optimizer,target_xyz,target_ecg,labels,ecgs):
+    '''
+    it calculates location error, AL step and the max cc. It helped to analyze large experiment when 
+    we consider CC of ECG as a concatenated version
+    '''
+    init = len(optimizer.visited)-len(optimizer.predicted)
+#     Y = optimizer._space.target
+#     X = optimizer.visited
+    max_cc,best = list(optimizer.max.values())[0], np.fromiter(list(optimizer.max.values())[1].values(),dtype=float)
+    
+#     max_cc = np.amax(Y)
+#     for i in range(len(Y)):
+#         if Y[i]==max_cc:
+#             best = X[i]
+#             break
+    print("best value",best)
+    for i in range(len(optimizer.visited)):
+        if np.array_equal(best, optimizer.visited[i]):
+            break
+    al_step = i-init+1
+    if al_step<0:
+        al_step=0
+    loc_error = euclidean_distance(best, target_xyz)
+    for j in range(len(labels)):
+        if np.array_equal(best, labels[j]):
+            idx = j
+            break
+    best_ecg = ecgs[idx]
+    best_ecg = np.reshape(best_ecg, [12, -1])
+    nums = 0
+    for k in range(12):
+        ccs = abs(correlation_coef(target_ecg.reshape(12,-1)[k], best_ecg[k]))
+        if ccs > .90:
+            nums += 1
+    loc_error,max_cc = np.around(loc_error,2),  np.around(max_cc,2)
+    return max_cc,al_step,nums,loc_error
+
+def result_table_xyz(target,optimizer):
+    '''
+    for 1 experiment it prints/return the table with distance from target at every iteration.
+    This function is for xyz coordinates
+    '''
+    print("The target location (in 3d) is:",target)
+    visited = np.asarray(optimizer.visited)
+    f = optimizer._space.target
+    nn_dis = np.empty((0,1))
+    for i in range(len(visited)):
+        d = np.sqrt(np.sum((target - visited[i])**2))
+        nn_dis = np.append(nn_dis,d)
+    nn_dis = nn_dis.reshape(-1,1)
+    nn_dis = np.around(nn_dis,2)
+    f = f.reshape(-1,1).astype(int)
+    it = (np.arange(len(visited))+1).reshape(-1,1).astype(int)
+    floating_part = np.around(np.concatenate((visited,nn_dis), axis = 1),2)
+    int_part = np.concatenate((it,f), axis = 1)
+    result = np.concatenate((int_part,floating_part), axis = 1)
+    table = PrettyTable(result.dtype.names)
+    table.field_names = ['iteration','passing_lead', 'x','y','z','dis(mm) from target']
+    for row in result:
+        table.add_row(row)
+    return table
+
+def result_table_uvc(target_xyz,target_uvc,optimizer,uvc_lv,labels_lv):
+    '''
+    for 1 experiment it prints/return the table with distance from target at every iteration.
+    This function is for uvc coordinates
+    '''
+    print("The target location (in uvc) is:",target_uvc)
+    visited = np.asarray(optimizer.visited)
+    visited_xyz = uvc_xyz(optimizer,uvc_lv,labels_lv,target_xyz)
+    f = optimizer._space.target
+    nn_dis = np.empty((0,1))
+    for i in range(len(visited)):
+        d = np.sqrt(np.sum((target_xyz - visited_xyz[i])**2))
+        nn_dis = np.append(nn_dis,d)
+    nn_dis = nn_dis.reshape(-1,1)
+    nn_dis = np.around(nn_dis,2)
+    f = f.reshape(-1,1).astype(int)
+    it = (np.arange(len(visited))+1).reshape(-1,1).astype(int)
+    floating_part = np.around(np.concatenate((visited,nn_dis), axis = 1),2)
+    int_part = np.concatenate((it,f), axis = 1)
+    result = np.concatenate((int_part,floating_part), axis = 1)
+    table = PrettyTable(result.dtype.names)
+    table.field_names = ['iteration','passing_lead', 'apicobasal','transmural','rotational','dis(mm) from target']
+    for row in result:
+        table.add_row(row)
+    return table
+
 
 if __name__ == '__main__':
     data_resolution()

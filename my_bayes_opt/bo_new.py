@@ -66,7 +66,7 @@ def approx(c1,labels):
         
 
 class mybo(object):
-    def __init__(self, f, pbounds, real_set=None,verbose=2,cc_thres=0.99, mm_thres=15):
+    def __init__(self, f, pbounds,real_set=None,verbose=2,cc_thres=0.99, mm_thres=12):
         # Store the original dictionary
         self.pbounds = pbounds
         self.real_set = real_set
@@ -358,13 +358,20 @@ class mybo(object):
                  n_iter=25,
                  acq='ei',
                  kappa=2.576,
+                 kappa_decay=1,
+                 kappa_decay_delay=0,
                  xi=0.0,
                  **gp_params):
         # Reset timer
         self.plog.reset_timer()
  
         # Set acquisition function
-        self.util = my_utility_function(kind=acq, kappa=kappa, xi=xi)
+#         self.util = my_utility_function(kind=acq, kappa=kappa, xi=xi)
+        self.util = my_utility_function(kind=acq,
+                       kappa=kappa,
+                       xi=xi,
+                       kappa_decay=kappa_decay,
+                       kappa_decay_delay=kappa_decay_delay)
  
         # Initialize x, y and find current y_max
         if not self.initialized:
@@ -382,10 +389,15 @@ class mybo(object):
         self.gp.fit(self.X[ur], self.Y[ur])
  
         # Finding argmax of the acquisition function.
+#         x_max = acq_max(ac=self.util.utility,
+#                         gp=self.gp,
+#                         y_max=y_max,
+#                         bounds=self.bounds)
         x_max = acq_max(ac=self.util.utility,
-                        gp=self.gp,
-                        y_max=y_max,
-                        bounds=self.bounds)
+            gp=self.gp,
+            y_max=y_max,
+            bounds=self.bounds,
+            n_warmup=10000)
         x_max2 = x_max
         predicted = np.append(predicted,x_max2.reshape(1,3),axis=0)
         x_max = approx(x_max,self.real_set)
@@ -396,6 +408,7 @@ class mybo(object):
         if self.verbose:
             self.plog.print_header(initialization=False)
         for i in range(n_iter):
+            print(kappa)
             predicted = np.append(predicted,x_max2.reshape(1,3),axis=0)
             pwarning = False
             if np.any((self.X - x_max).sum(axis=1) == 0):
@@ -419,10 +432,133 @@ class mybo(object):
             if self.Y[-1] > y_max:
                 y_max = self.Y[-1]
             # Maximize acquisition function to find next probing point
+#             x_max = acq_max(ac=self.util.utility,
+#                             gp=self.gp,
+#                             y_max=y_max,
+#                             bounds=self.bounds)
             x_max = acq_max(ac=self.util.utility,
-                            gp=self.gp,
-                            y_max=y_max,
-                            bounds=self.bounds)
+                gp=self.gp,
+                y_max=y_max,
+                bounds=self.bounds,
+                n_warmup=10000)
+            x_max2 = x_max
+            x_max = approx(x_max,self.real_set)
+#             x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)
+ 
+            # Print stuff
+            if self.verbose:
+                self.plog.print_step(self.X[-1], self.Y[-1], warning=pwarning)
+ 
+            # Keep track of total number of iterations
+            self.i += 1
+ 
+            self.res['max'] = {'max_val': self.Y.max(),
+                               'max_params': dict(zip(self.keys,
+                                                      self.X[self.Y.argmax()]))
+                               }
+            self.res['all']['values'].append(self.Y[-1])
+            self.res['all']['params'].append(dict(zip(self.keys, self.X[-1])))
+ 
+        # Print a final report if verbose active.
+        if self.verbose:
+            self.plog.print_summary()
+        return self.gp, self.X, self.X[0:init_points,:],predicted
+
+    
+    def gpfit_12_lead(self,
+                 init_points=5,
+                 n_iter=25,
+                 acq='ei',
+                 kappa=2.576,
+                 kappa_decay=1,
+                 kappa_decay_delay=0,
+                 xi=0.0,
+                 **gp_params):
+        # Reset timer
+        self.plog.reset_timer()
+ 
+        # Set acquisition function
+#         self.util = my_utility_function(kind=acq, kappa=kappa, xi=xi)
+        self.util = my_utility_function(kind=acq,
+                       kappa=kappa,
+                       xi=xi,
+                       kappa_decay=kappa_decay,
+                       kappa_decay_delay=kappa_decay_delay)
+ 
+        # Initialize x, y and find current y_max
+        if not self.initialized:
+            if self.verbose:
+                self.plog.print_header()
+            self.init(init_points)
+ 
+        y_max = self.Y.max()
+        predicted = np.empty((0, 3))
+        # Set parameters if any was passed
+        self.gp.set_params(**gp_params)
+ 
+        # Find unique rows of X to avoid GP from breaking
+        ur = unique_rows(self.X)
+        self.gp.fit(self.X[ur], self.Y[ur])
+ 
+        # Finding argmax of the acquisition function.
+#         x_max = acq_max(ac=self.util.utility,
+#                         gp=self.gp,
+#                         y_max=y_max,
+#                         bounds=self.bounds)
+        x_max = acq_max(ac=self.util.utility,
+            gp=self.gp,
+            y_max=y_max,
+            bounds=self.bounds,
+            n_warmup=10000)
+        x_max2 = x_max
+        predicted = np.append(predicted,x_max2.reshape(1,3),axis=0)
+        x_max = approx(x_max,self.real_set)
+#         if y_max==self.mm_thres:
+#             break
+        
+        # Print new header
+        if self.verbose:
+            self.plog.print_header(initialization=False)
+        for i in range(n_iter):
+#             print(kappa)
+            predicted = np.append(predicted,x_max2.reshape(1,3),axis=0)
+            pwarning = False
+            if np.any((self.X - x_max).sum(axis=1) == 0):
+ 
+                x_max = np.random.uniform(self.bounds[:, 0],
+                                          self.bounds[:, 1],
+                                          size=self.bounds.shape[0])
+                x_max = approx(x_max,self.real_set)
+ 
+                pwarning = True
+ 
+            # Append most recently generated values to X and Y arrays
+            self.X = np.vstack((self.X, x_max.reshape((1, -1))))
+            self.Y = np.append(self.Y, self.f(**dict(zip(self.keys, x_max))))
+ 
+            # Updating the GP.
+            ur = unique_rows(self.X)
+            self.gp.fit(self.X[ur], self.Y[ur])
+ 
+            # Update maximum value to search for next probe point.
+            if self.Y[-1] > y_max:
+                y_max = self.Y[-1]
+            # Maximize acquisition function to find next probing point
+#             x_max = acq_max(ac=self.util.utility,
+#                             gp=self.gp,
+#                             y_max=y_max,
+#                             bounds=self.bounds)
+#             print(y_max)
+            if y_max == self.mm_thres:
+#                 success = True
+                break
+            self.util.update_params()
+            print(kappa)
+            x_max = acq_max(ac=self.util.utility,
+                gp=self.gp,
+                y_max=y_max,
+                bounds=self.bounds,
+                n_warmup=10000)
             x_max2 = x_max
             x_max = approx(x_max,self.real_set)
 #             x_max = approximate_point(x_max, self.real_set, self.X, self.mm_thres)

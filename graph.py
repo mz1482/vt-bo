@@ -93,11 +93,11 @@ def nearest(tidx,labels,ecgs,dis_limit):
     near_points = np.concatenate((nn_loc, nn_dis, nn_cc),axis =1)
     table = np.concatenate((first_row,near_points), axis = 0)
     table = np.around(table,2)
-    fig = plt.figure(2)
-    plt.scatter(table[:,3],table[:,4])
-    plt.xlabel("distance")
-    plt.ylabel("correlation")
-    plt.show
+#     fig = plt.figure(2)
+#     plt.scatter(table[:,3],table[:,4])
+#     plt.xlabel("distance")
+#     plt.ylabel("correlation")
+#     plt.show
     return table
 
 def graph_cc_distribution(target,ecgs,labels):
@@ -117,14 +117,14 @@ def graph_cc_distribution(target,ecgs,labels):
     sns.set(style = "darkgrid")
     fig = plt.figure(figsize=(10,7))
     ax = fig.gca(projection='3d')
-    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2],s = 60, c=color_gradient, cmap = plt.cm.rainbow)
-    ax.scatter(true[0], true[1], true[2], color='black', marker = "*", s = 200)
+    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2],s = 5, c=color_gradient, cmap = plt.cm.rainbow)
+    ax.scatter(true[0], true[1], true[2], color='black', marker = "*", s = 60)
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     fig.colorbar(img)
     fig.suptitle('Actual CC plot', fontsize=16)
-#     plt.show()
-    anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
-    anim.save('plots/uvc_cc'+str(labels[1])+'.gif', dpi=80, writer='imagemagick', fps=10)
+    plt.show()
+#     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+#     anim.save('plots/uvc_cc'+str(labels[1])+'.gif', dpi=80, writer='imagemagick', fps=10)
 
 
 
@@ -289,6 +289,17 @@ def gp_plot(gp,labels,target):
     plt.show()
 #     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
 #     anim.save('plots/GP'+str(labels[1])+'.gif', dpi=80, writer='imagemagick', fps=10)
+
+def gp_uvc(gp,target,labels):
+    color_gradient = []
+    for i in range(len(labels)):
+        cc = gp.predict(labels[i].reshape(1,-1),return_std=False)
+        color_gradient.append(cc)
+    color_gradient = np.array(color_gradient).flatten()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter3d(x=labels[:,0],y=labels[:,1],z=labels[:,2],mode = 'markers',marker=dict(size=5,color=color_gradient,colorbar=dict(title=""),colorscale='rainbow',opacity=0)))
+    fig.add_trace(go.Scatter3d(x=[target[0]],y=[target[1]],z=[target[2]],mode = 'markers',marker=dict(size=10,color='Black',symbol='x')))
+    fig.show()
     
 def init_gp_plot(init,gp,labels,visited,target):
     path = np.array(visited)
@@ -429,3 +440,34 @@ def predicted_visited(init,target,target_ecg,labels,ecgs,visited,predicted):
     plt.show()
 #     anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
 #     anim.save('plots/AL_path'+str(labels[1])+'.gif', dpi=80, writer='imagemagick', fps=10)
+
+def visited(init,target,target_ecg,labels,ecgs,visited):
+    """
+    show the points and path of both predicted and visited values
+    """
+    color_gradient = []
+    for ecg, coord in zip(ecgs, labels):
+        cc = correlation_coef(target_ecg, ecg)
+        color_gradient.append(cc)
+        
+    path = np.array(visited)
+    path1 = path[0:init,:]
+    path2 = path[init:len(path),:]
+    
+#     rest = np.delete(labels, np.where(np.isin(labels, path2)), axis=0)
+#     color_gradient = np.delete(color_gradient, np.where(np.isin(labels, path2)), axis=0)
+    fig = plt.figure(figsize=(10,7))
+    ax = fig.gca(projection='3d')
+    img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], zdir='z', alpha=0.75,s = 10, c=color_gradient, cmap = plt.cm.rainbow)
+    ax.scatter(xs=path2[:, 0], ys=path2[:, 1], zs=path2[:, 2], zdir='z',s=20, color='blue')
+    ax.plot(path2[:, 0], path2[:, 1], path2[:, 2], color = 'black',label = 'Visited Path')
+    ax.legend()
+    fig.colorbar(img)
+    m = path2
+    for i in range(len(m)):
+        ax.text(m[i, 0], m[i, 1], m[i, 2], '%s' % (str(i+init+1)), size=15, zorder=1, color='black')
+    ax.scatter(xs=target[0], ys=target[1], zs=target[2], color='black',marker = "*", s = 150)
+    fig.suptitle('Path of BO to target', fontsize=16)
+#     plt.show()
+    anim = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), repeat=True, fargs=(fig, ax))
+    anim.save('plots/uvc_bo'+str(labels[1])+'.gif', dpi=80, writer='imagemagick', fps=10)

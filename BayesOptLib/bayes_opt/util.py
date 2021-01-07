@@ -137,7 +137,6 @@ class UtilityFunction(object):
 
     def update_params(self):
         self._iters_counter += 1
-
         if self._kappa_decay < 1 and self._iters_counter > self._kappa_decay_delay:
             self.kappa *= self._kappa_decay
 
@@ -152,7 +151,7 @@ class UtilityFunction(object):
     @staticmethod
     def _ucb(x, gp, kappa):
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+#             warnings.simplefilter("ignore")
             mean, std = gp.predict(x, return_std=True)
 
         return mean + kappa * std

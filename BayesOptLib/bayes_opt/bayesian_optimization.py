@@ -13,6 +13,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 
 
+
 def check(test, array):
     """
     Simple generator to check whether a 1d array lies within a multidimensional array
@@ -124,7 +125,7 @@ class Observable(object):
 
 
 class BayesianOptimization(Observable):
-    def __init__(self, f, pbounds, random_state=None, verbose=2, real_set=None, cc_thres=0.99, mm_thres=100):
+    def __init__(self, f, pbounds, random_state=None, verbose=2, real_set=None, cc_thres=0.99, mm_thres=100,cc_num_thres=12):
         """"""
         self._random_state = ensure_rng(random_state)
 
@@ -159,6 +160,7 @@ class BayesianOptimization(Observable):
 
         # Distance threshold for grabbing the next point
         self.mm_thres = mm_thres
+        self.cc_num_thres = cc_num_thres
 
         # Super call
         super(BayesianOptimization, self).__init__(events=DEFAULT_EVENTS)
@@ -346,9 +348,11 @@ class BayesianOptimization(Observable):
             try:
                 x_probe = next(self._queue)
             except StopIteration:
+                util.update_params()
+#                 print(kappa)
                 x_probe = self.suggest(util)
                 iteration += 1
-
+                
             # Check for none
             if x_probe is None:
                 print("No points within threshold!")
@@ -364,6 +368,62 @@ class BayesianOptimization(Observable):
 #         self.dispatch(Events.OPTMIZATION_END)
         
         # Returns whether the runtime were successful in finding the last site
+        return self._gp,self.visited
+    
+    def gpfit_12_lead(self,
+                 init_points=5,
+                 given_set=None,
+                 n_iter=25,
+                 acq='ucb',
+                 kappa=2.576,
+                 kappa_decay=0.75,
+                 kappa_decay_delay=0,
+                 xi=0.0,
+                 **gp_params):
+        """Mazimize your function"""
+        self._prime_subscriptions()
+        self.dispatch(Events.OPTMIZATION_START)
+        success = False
+
+        # If giving a segment initialization, need to pull samples from that given set only
+        if given_set is not None:
+            self._prime_queue(init_points, given_set)
+        else:
+            self._prime_queue(init_points)
+
+        self.set_gp_params(**gp_params)
+
+
+        util = UtilityFunction(kind=acq,
+                       kappa=kappa,
+                       xi=xi,
+                       kappa_decay=kappa_decay,
+                       kappa_decay_delay=kappa_decay_delay)
+        iteration = 0
+        while not self._queue.empty or iteration < n_iter:
+            
+            try:
+                x_probe = next(self._queue)
+            except StopIteration:
+                
+#                 print(util.kappa)
+                util.update_params()
+                x_probe = self.suggest(util)
+                
+                iteration += 1
+
+            # Check for none
+#             if x_probe is None:
+#                 print("No points within threshold!")
+#                 break
+
+            # Probe for Y value of suggestion, check for success
+            cc_num = self.probe(x_probe, lazy=False)
+            if cc_num == self.cc_num_thres:
+                self.suggest(util)
+                success = True
+                break
+
         return self._gp,self.visited
     
     def set_bounds(self, new_bounds):

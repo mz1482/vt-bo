@@ -153,8 +153,25 @@ def graph_3d(x, y, z, xname, yname, zname):
     ax.set_ylabel(yname)
     ax.set_zlabel(zname)
     plt.show()
+    
+def closer_points(target,ecgs,labels,aucs,limit):
+    '''
+    This function is to check the efficiency of Ryan's model.
+    It narrows the data based on the limit distance from the target.
+    It helps to understand that ryan's model works
+    '''
+    nn_labels = np.empty((0, 3))
+    nn_aucs = np.empty((0, 12))
+    nn_ecgs = np.empty((0, ecgs.shape[1]))
+    for i in range(len(labels)):
+        d = euclidean_distance(target, labels[i])
+        if d<=limit:
+            nn_labels = np.append(nn_labels,labels[i].reshape(1,3),axis=0)
+            nn_aucs = np.append(nn_aucs,aucs[i].reshape(1,12),axis=0)
+            nn_ecgs = np.append(nn_ecgs,ecgs[i].reshape(1,-1),axis=0)
+    return nn_labels, nn_aucs, nn_ecgs
 
-def uvc_xyz(optimizer,uvc_lv,labels_lv,target_xyz):
+def uvc_xyz(optimizer,uvc_lv,labels_lv):
     '''
     convert the visited uvc to visited xyz
     '''
@@ -166,42 +183,106 @@ def uvc_xyz(optimizer,uvc_lv,labels_lv,target_xyz):
         path_xyz = np.append(path_xyz,b.reshape(1,-1),axis=0)
     return path_xyz
 
-def result_metric(optimizer,target_xyz,target_ecg,labels,ecgs):
+
+def uvc_xyz2(array,uvc_lv,labels_lv):
+    '''
+    convert uvc array to xyz array
+    '''
+    visited = np.reshape(array,(-1,3))
+    path_xyz=np.empty((0, 3))
+    for i in range(visited.shape[0]):
+        t=get_index(array,uvc_lv)
+        b=labels_lv[t]
+        path_xyz = np.append(path_xyz,b.reshape(1,-1),axis=0)
+    return path_xyz
+
+
+def result_metric_xyz(optimizer,target_xyz,labels,lead_condition = False):
     '''
     it calculates location error, AL step and the max cc. It helped to analyze large experiment when 
     we consider CC of ECG as a concatenated version
     '''
     init = len(optimizer.visited)-len(optimizer.predicted)
-#     Y = optimizer._space.target
-#     X = optimizer.visited
-    max_cc,best = list(optimizer.max.values())[0], np.fromiter(list(optimizer.max.values())[1].values(),dtype=float)
-    
-#     max_cc = np.amax(Y)
-#     for i in range(len(Y)):
-#         if Y[i]==max_cc:
-#             best = X[i]
-#             break
-    print("best value",best)
-    for i in range(len(optimizer.visited)):
-        if np.array_equal(best, optimizer.visited[i]):
-            break
-    al_step = i-init+1
-    if al_step<0:
-        al_step=0
+    Y = optimizer.lead_num
+    if lead_condition==True:
+        print("lead condition is given")
+        al_step = optimizer.al_step
+        max_cc = optimizer.max_cc
+        max_lead = optimizer.num_best       
+        if al_step == 0:
+            best = optimizer.x_best
+        else:
+            best = np.fromiter(optimizer.x_best.values(),dtype = float)        
+# #         best = np.fromiter(optimizer.res[marker]['params'].values(),dtype = float)
+#         max_cc = optimizer.res[marker]['target']
+        print('al step',al_step)
+        print('max cc is',max_cc)
+        print("best value",best)
+        print('best lead',max_lead)
+    else:
+        print("no 12 lead condition")
+        max_cc,best = list(optimizer.max.values())[0], np.fromiter(list(optimizer.max.values())[1].values(),dtype=float)        
+        for i in range(len(optimizer.visited)):
+            if np.array_equal(best, optimizer.visited[i]):
+                marker = i
+                break
+        max_lead = Y[marker]
+        al_step = marker+1-init
+        if al_step < 0:
+            al_step = 0
+        print('al step is', al_step)
+        print('max_cc is ', max_cc)
+        print("best value",best)
+        print('best lead',max_lead)
     loc_error = euclidean_distance(best, target_xyz)
-    for j in range(len(labels)):
-        if np.array_equal(best, labels[j]):
-            idx = j
-            break
-    best_ecg = ecgs[idx]
-    best_ecg = np.reshape(best_ecg, [12, -1])
-    nums = 0
-    for k in range(12):
-        ccs = abs(correlation_coef(target_ecg.reshape(12,-1)[k], best_ecg[k]))
-        if ccs > .90:
-            nums += 1
-    loc_error,max_cc = np.around(loc_error,2),  np.around(max_cc,2)
-    return max_cc,al_step,nums,loc_error
+#     loc_error,max_cc = np.around(loc_error,2),  np.around(max_cc,2)
+    return best,max_cc,al_step,max_lead,loc_error
+
+
+def result_metric_uvc(optimizer,target_xyz,target_ecg,uvc_lv,labels_lv,lead_condition = False):
+    '''
+    This is for UVC
+    it calculates location error, AL step and the max cc. It helped to analyze large experiment when 
+    we consider CC of ECG as a concatenated version
+    '''
+    init = len(optimizer.visited)-len(optimizer.predicted)
+    Y = optimizer.lead_num
+    if lead_condition==True:
+        print("lead condition is given")
+        al_step = optimizer.al_step
+        max_cc = optimizer.max_cc
+        max_lead = optimizer.num_best        
+        if al_step == 0:
+            best = optimizer.x_best
+        else:
+            best = np.fromiter(optimizer.x_best.values(),dtype = float)
+        print("best value",best)
+        print('max cc is',max_cc)
+        print('al step',al_step)
+        print('best lead',max_lead)
+    if lead_condition==False:
+        print("No lead condition")
+        max_cc,best = list(optimizer.max.values())[0], np.fromiter(list(optimizer.max.values())[1].values(),dtype=float)
+        for i in range(len(optimizer.visited)):
+            if np.array_equal(best, optimizer.visited[i]):
+                marker = i
+                break
+        max_lead = Y[marker]
+        al_step = marker+1-init
+        if al_step < 0:
+            al_step = 0
+        print('al step is', al_step)
+        print('max_cc is ', max_cc)
+        print('best lead',max_lead)
+        print("best value",best)
+    best_xyz = uvc_xyz2(best,uvc_lv,labels_lv)
+    best_xyz = best_xyz.reshape(3,)
+    print("the best xyz location",best_xyz)
+    loc_error = euclidean_distance(best_xyz, target_xyz)
+    print('loc error:',loc_error)
+#     loc_error,max_cc = np.around(loc_error,2),  np.around(max_cc,2)
+    return best,max_cc,al_step,max_lead,loc_error
+
 
 def result_table_xyz(target,optimizer):
     '''

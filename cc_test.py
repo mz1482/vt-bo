@@ -4,6 +4,7 @@ from models.bomodel import BOModel
 from models.confi import *
 from models.utilfuncs import *
 from graph import *
+from data_analysis import *
 import pandas as pd
 from tqdm import tqdm
 import random
@@ -12,12 +13,21 @@ import random
 import warnings
 warnings.filterwarnings('ignore')
 # Reading in the ECGs and labels
-aucs = pd.read_csv("data/simu_data_4000/Heart1/Heart1_AUCS.csv", header=None).to_numpy()
-ecgs = pd.read_csv("data/simu_data_4000/Heart1/Heart1_SimuData_4000.csv", header=None).to_numpy()
+aucs = pd.read_csv("data/simu_data_4000/Heart1/Heart1_AUCS_4000.csv", header=None).to_numpy()
+ecgs = pd.read_csv("data/simu_data_4000/Heart1/Heart1_SimuData_4000_200Cropped.csv", header=None).to_numpy()
 labels = pd.read_csv("data/simu_data_4000/Heart1/Coord1_4000.csv", header=None).to_numpy() / 1000
+uvc = pd.read_csv("data/simu_data_4000/UVC/Coord1_UVC_4000.csv", header=None).to_numpy()
+###taking only left ventricular#####
+idx=lv_rv(uvc,-1)
+uvc_lv=uvc[idx]
+uvc_lv = uvc_lv[:,0:3]
+ecgs = ecgs[idx]
+labels = labels[idx]
+aucs = aucs[idx]
+##################
 total_cases = 0
 alle, all_points = [], []
-cc_euclids = [[] for _ in range(NUM_STEPS + 21)]                    # Random init CC arrays
+cc_euclids = []                # Random init CC arrays
 cc_successes, cc_avg_sites = [], []
 cc_drop = []
 # Set mm threshold for finding nearest
@@ -50,32 +60,33 @@ def model_run(model, x, y, train, labels, target, target_coord, target_raw, succ
         # if j != 0:
         #     drop.append(euclids[j] - euclids[j - 1])
     return successes, avg_sites, all_euclids, sites
-cc_model = CCModel(leads=LEADS, steps=10, svr_c=SVR_C, cc=CC_THRES, cc_succ=CC_SUCC,
-                   mm=mm_thres, samp_raw=ecgs, samp_coords=labels)
-success_list=[]
-exp = np.random.randint(0,3999,10)
+
+cc_model = CCModel(leads=LEADS, steps=NUM_STEPS, svr_c=SVR_C, cc=CC_THRES, cc_succ=CC_SUCC,
+                   mm=mm_thres, samp_raw=ecgs, samp_coords=uvc_lv)
+exp = np.random.randint(0,len(labels),200)
 for n in range(len(exp)):
+    print("experiemnt:",n+1)
     idx = exp[n]
     target = aucs[idx]
-    target_coord = labels[idx]
+#     target_coord = labels[idx]
+    target_coord = uvc_lv[idx]
     target_raw = ecgs[idx]
 
     # Drop the target from the training set
     if idx == 0:
-        x, y, raw = aucs[idx + 1:, :], labels[idx + 1:], ecgs[idx + 1:, :]
+        x, y, raw = aucs[idx + 1:, :], uvc_lv[idx + 1:], ecgs[idx + 1:, :]
     else:
         x = np.concatenate((aucs[:idx, :], aucs[idx + 1:, :]))
-        y = np.concatenate((labels[:idx], labels[idx + 1:]))
+        y = np.concatenate((uvc_lv[:idx], uvc_lv[idx + 1:]))
         raw = np.concatenate((ecgs[:idx], ecgs[idx + 1:]))
-
-#     x,y,raw = narrow_cc(target_coord,y,raw,x,30)
 
 
     random_x, random_y = get_random_dataset(x, y)
 
-    cc_euclids, cc_preds, cc_sites, success, num_sites = cc_model.run(x, y, random_x, random_y,
+    cc_euclids, cc_preds, cc_sites, success, num_sites,no_of_lead = cc_model.run(x, y, random_x, random_y,
                                                              target, target_coord, target_raw)
-    print(success)
-    success_list = np.append(success_list,success)
-print(success_list)
+    f= open("./exp_res/exp_200ms/cc_model_uvc_200.txt","a")
+    f.write(str(n)+","+str(target_coord[0]) + "," + str(target_coord[1]) + "," + str(target_coord[2])+","+str(num_sites)+","+str(no_of_lead) +"\n")
+    f.close()
+
 # cc_model_graph(target_coord,target_raw,ecgs,labels,cc_sites,cc_preds)

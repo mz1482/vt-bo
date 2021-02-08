@@ -13,7 +13,7 @@ warnings.filterwarnings('ignore')
 
 
 class CCModel:
-    def __init__(self, leads=None, svr_c=5, steps=20, mm=15, cc=.75, cc_succ=.9, samp_coords=None, samp_raw=None):
+    def __init__(self, leads=None, svr_c=5, steps=20, mm=15, cc=.75, cc_succ=.95, samp_coords=None, samp_raw=None):
         # Which leads to use
         self.leads = leads if leads is not None else [i for i in range(12)]
 
@@ -28,6 +28,7 @@ class CCModel:
         self.samp_coords = samp_coords
         self.samp_raw = samp_raw
 
+        
     def find_interest_site(self, train, labels, target_coord):
         """
         Handles finding the site of interest for the CC model by building a model for each training site and testing
@@ -86,6 +87,7 @@ class CCModel:
         cc_sites = list()
         success = False
         num_sites = 0
+        no_of_lead = 0
 
         """ Inital pred """
         # Predicting on target site to test error on target site
@@ -96,9 +98,14 @@ class CCModel:
         cc_euclids.append(euclid)
 
         _, pred_raw, pred_check = get_closest(5, pred, self.samp_raw, self.samp_coords)
-        if pred_check is not None and check_cc_success(pred_raw, target_raw) >= self.cc_succ:
-            success = True
-            return cc_euclids, cc_preds, cc_sites, success, num_sites
+#         if pred_check is not None and check_cc_success(pred_raw, target_raw) >= self.cc_succ:
+        
+        if pred_check is not None:
+            no_of_lead =  check_cc_success(pred_raw, target_raw)
+            if no_of_lead>=12:
+                print("initial success")
+                success = True
+                return cc_euclids, cc_preds, cc_sites, success, num_sites,no_of_lead
 
         # Loop that involves finding site with highest localization error, finding closest site, and retraining
         for i in range(self.num_steps):
@@ -121,9 +128,14 @@ class CCModel:
 
                 # Check for successful termination
                 _, pred_raw, pred_check = get_closest(5, pred, self.samp_raw, self.samp_coords)
-                if pred_check is not None and check_cc_success(pred_raw, target_raw) >= self.cc_succ:
-                    success = True
-                    break
+#                 if pred_check is not None and check_cc_success(pred_raw, target_raw) >= self.cc_succ:
+
+                if pred_check is not None:
+                    no_of_lead = check_cc_success(pred_raw, target_raw)
+                    if no_of_lead>=12:
+                        print("exploitation AL success")
+                        success = True
+                        break
                 num_sites += 1
 
             """ Input space exploration """
@@ -132,6 +144,7 @@ class CCModel:
             # When there is no new points to add
             if interest_site is None and pred_x is None:
                 break
+                
 
             # Check for sites near interest
             if interest_site is not None:
@@ -161,10 +174,13 @@ class CCModel:
                     cc_euclids.append(euclid)
 
                     _, pred_raw, pred_check = get_closest(5, pred, self.samp_raw, self.samp_coords)
-                    if pred_check is not None and check_cc_success(pred_raw, target_raw) >= self.cc_succ:
-                        success = True
-                        num_sites = len(train)
-                        break
+#                     if pred_check is not None and check_cc_success(pred_raw, target_raw) >= self.cc_succ:
+                    if pred_check is not None:
+                        no_of_lead = check_cc_success(pred_raw, target_raw)
+                        if no_of_lead>=12:
+                            print("exploration al success")
+                            success = True
+                            break
                     num_sites += 1
 
-        return cc_euclids, cc_preds, cc_sites, success, num_sites
+        return cc_euclids, cc_preds, cc_sites, success, num_sites, no_of_lead

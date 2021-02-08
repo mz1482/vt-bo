@@ -39,7 +39,6 @@ def check_corr_coef(site, target, samp_coords, samp_data):
         if np.array_equal(np.round(target, 2), np.round(coord, 2)):
             target_idx = idx
         idx += 1
-
     # Returning CC between them
     return np.corrcoef(samp_data[target_idx], samp_data[site_idx])[0, 1]
 
@@ -247,6 +246,23 @@ def get_optim_dataset(thres, target, data, coords):
     return np.array(x), np.array(y)
 
 
+# def check_cc_success(pred_raw, target_raw):
+#     """
+#     Handles checking for the success cases where all 12/12 leads match (>.9) in the ECG file
+#     :param pred_raw:
+#     :param target_raw:
+#     :return:
+#     """
+#     pred_raw = np.reshape(pred_raw, [12, -1])
+#     target_raw = np.reshape(target_raw, [12, -1])
+#     nums = 0
+#     for i in range(12):
+#         ccs = np.corrcoef(pred_raw[i], target_raw[i])[0, 1]
+#         if ccs > .9:
+#             nums += 1
+
+#     return True if nums == 12 else False
+
 def check_cc_success(pred_raw, target_raw):
     """
     Handles checking for the success cases where all 12/12 leads match (>.9) in the ECG file
@@ -254,12 +270,13 @@ def check_cc_success(pred_raw, target_raw):
     :param target_raw:
     :return:
     """
+#     print(pred_raw.shape)
     pred_raw = np.reshape(pred_raw, [12, -1])
     target_raw = np.reshape(target_raw, [12, -1])
     nums = 0
     for i in range(12):
         ccs = np.corrcoef(pred_raw[i], target_raw[i])[0, 1]
-        if ccs > .9:
+        if ccs > .95:
             nums += 1
 
-    return True if nums == 12 else False
+    return nums

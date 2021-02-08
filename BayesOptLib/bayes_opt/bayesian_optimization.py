@@ -16,9 +16,6 @@ from matplotlib import pyplot as plt
 
 def check(test, array):
     """
-    Simple generator to check whether a 1d array lies within a multidimensional array
-    :param test: value to test for
-    :param array: multidimensional array to check through
     :return: true iff test in array
     """
     return any(np.array_equal(x, test) for x in array)
@@ -70,6 +67,36 @@ def approximate_point(suggestion, real_set, visited, threshold):
     else:
         return None
 
+def get_index2(label,labels):
+    """
+    Gets the idx of a label in the labels array
+    :param label: label to check for
+    :return: idx
+    """
+    idx = 0
+    for coord in labels:
+        if np.array_equal(label, coord):
+            break
+        idx += 1
+    return idx
+def correlation_coef(one, two):
+    """ Returns the CC between two ECG signals"""
+    return np.corrcoef(one, two)[0, 1]
+    
+def lead_num(target_ecg,ecgs,labels,x_probe):
+    '''
+    return the number of lead passed the threshold = 0.90
+    '''
+    sample_ecg = ecgs[get_index2(x_probe,labels)]
+    sample_ecg = np.reshape(sample_ecg, [12, -1])
+    nums = 0
+    for i in range(12):
+        ccs = abs(correlation_coef(target_ecg.reshape(12,-1)[i], sample_ecg[i]))
+        if ccs > .9499:
+            nums += 1
+    return nums    
+    
+    
 
 class Queue:
     def __init__(self):
@@ -125,7 +152,7 @@ class Observable(object):
 
 
 class BayesianOptimization(Observable):
-    def __init__(self, f, pbounds, random_state=None, verbose=2, real_set=None, cc_thres=0.99, mm_thres=100,cc_num_thres=12):
+    def __init__(self, f, pbounds, random_state=None, verbose=2, real_set=None, cc_thres=0.99, mm_thres=100,cc_num_thres=12,ecgs = 0,target_ecg=0):
         """"""
         self._random_state = ensure_rng(random_state)
 
@@ -150,10 +177,19 @@ class BayesianOptimization(Observable):
 
         # Holds all of the discrete points within the set to approximate suggestions to
         self._real_set = real_set
+        self.target_ecg = target_ecg
+        self.ecgs = ecgs
+        self.lead_num = []
 
         # Holds set of visited and predicted points for approximation
         self.visited = []
         self.predicted = []
+        self.num_best = 0
+        self.x_best = []
+        self.max_cc = 0
+        self.al_step = 0
+        
+
 
         # Target thres to hit between suggestion and pred
         self.cc_thres = cc_thres
@@ -322,7 +358,7 @@ class BayesianOptimization(Observable):
                  kappa=2.576,
                  kappa_decay=1,
                  kappa_decay_delay=0,
-                 xi=0.0,
+                 xi=0.0,lead_condition=True,
                  **gp_params):
         """Mazimize your function"""
         self._prime_subscriptions()
@@ -360,15 +396,45 @@ class BayesianOptimization(Observable):
 
             # Probe for Y value of suggestion, check for success
             cc = self.probe(x_probe, lazy=False)
-            if cc > self.cc_thres:
-                self.suggest(util)
-                success = True
-                break
+            if iteration == 0:
+                self.al_step = 0
+                num = lead_num(self.target_ecg,self.ecgs,self._real_set,x_probe)
+                self.lead_num.append(num)
+                if (self.num_best<self.lead_num[-1]<=12):
+                    self.num_best = self.lead_num[-1]
+                    self.x_best = x_probe
+                    self.max_cc = list(self.max.values())[0]
+                print('passing lead',num)
+            else:
+                xx = np.asarray(list(x_probe.values()))
+                num = lead_num(self.target_ecg,self.ecgs,self._real_set,xx)                
+                self.lead_num.append(num)
+                if (self.num_best<self.lead_num[-1]<=12):
+                    self.al_step =len(self.visited)-init_points
+                    self.num_best = self.lead_num[-1]
+                    self.x_best = x_probe
+                    self.max_cc = self._space.probe(x_probe)
+                print('passing lead',num)
+            if lead_condition == True:
+    #############breaking condition on lead number###########
+                if num == 12:
+                    self.suggest(util)
+                    success = True
+                    break
+            else:
+############# condition on max_cc = 0.95##############
+                if cc > self.cc_thres:
+                    self.suggest(util)
+                    success = True
+                    break
+######################################
+
+
 
 #         self.dispatch(Events.OPTMIZATION_END)
         
         # Returns whether the runtime were successful in finding the last site
-        return self._gp,self.visited
+        return self._gp,self.lead_num
     
     def gpfit_12_lead(self,
                  init_points=5,

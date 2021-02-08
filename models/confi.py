@@ -6,7 +6,7 @@ LEADS = [i for i in range(12)]
 NUM_TRIALS = 5
 
 # Number of steps to take in a single run
-NUM_STEPS = 20
+NUM_STEPS = 50
 
 # How many randomly selected points to start with (within the predicted segments)
 NUM_POINTS_START = 10

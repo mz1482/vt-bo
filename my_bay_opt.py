@@ -3,7 +3,7 @@ sys.path.append('/home/mz1482/project/vt-bayesian-opt-bopt_debug/my_bayes_opt/')
 import bo_new
 import pandas as pd
 import numpy as np
-from data_analysis import get_heart_bounds, correlation_coef, graph_3d, get_index, lv_rv,uvc_xyz,result_metric
+from data_analysis import *
 from graph import *
 # from my_bayes_opt import bo_new
 from RandomSampler import RandomSampler

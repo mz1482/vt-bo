@@ -314,7 +314,7 @@ def init_gp_plot(init,gp,labels,visited,target):
     ax = fig.gca(projection='3d')
     img = ax.scatter(xs=labels[:, 0], ys=labels[:, 1], zs=labels[:, 2], c=color_gradient, s=5,cmap = plt.cm.rainbow)
     ax.scatter(xs=path1[:, 0], ys=path1[:, 1], zs=path1[:, 2], zdir='z',s=40, color='blue')
-    ax.scatter(target[0], target[1], target[2], color='black', marker = "X", s = 100)
+    ax.scatter(target[0], target[1], target[2], color='black', marker = "X", s = 150)
 #     ax.plot(path1[:, 0], path1[:, 1], path1[:, 2], color = 'black',label = 'initial random Path')
     ax.set_xlabel("X"), ax.set_ylabel("Y"), ax.set_zlabel("Z")
     fig.colorbar(img)
